@@ -1,0 +1,261 @@
+#user_commands_handlers.py
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import SetupSubstate
+from handlers.utils import *
+
+async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will change this to proper start later...
+  user = ensure_user(update.effective_user.id)
+
+  keyboard = [
+    [InlineKeyboardButton("Start a new game", callback_data = 's:setup_game')],
+    [InlineKeyboardButton("View game rules", callback_data = 'help')],
+  ]
+  
+  await context.bot.send_message(
+    chat_id = update.message.chat_id,
+    text = 'Welcome! Please choose an option:',
+    reply_markup = InlineKeyboardMarkup(keyboard)
+  )
+
+async def start_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user = ensure_user(update.effective_user.id)
+
+  keyboard = [
+    [InlineKeyboardButton("Start it", callback_data = 's:setup_game')],
+    [InlineKeyboardButton("don't start", callback_data = 'del_message')],
+  ]
+
+  await context.bot.send_message(
+    chat_id = update.message.chat_id,
+    text = 'Starting a new game ends any runinng game.',
+    reply_markup = InlineKeyboardMarkup(keyboard)
+  )
+
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  pass # will be huge later...
+
+async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, current_game = get_user_game(update)
+  args = context.args
+
+  if not args:
+    text = "🎮 To join a game use:\n/join <game_code>\n\nExample:\n/join 12345"
+
+    if current_game:
+      text = (
+        "⚠️ You are already in a game.\n"
+        "Joining another will end your current one.\n"
+        "To see your game try /game\n\n"
+        + text
+      )
+
+    await context.bot.send_message(
+      chat_id=update.effective_chat.id,
+      text=text
+    )
+    return
+
+  try:
+    code = int(args[0])
+  except Exception:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "❌ Invalid code format. Use numbers only.\nExample: /join 12345"
+    )
+    return
+
+  game = get_game_by_id(code)
+  if not game:
+    await context.bot.send_message(
+      chat_id=update.effective_chat.id,
+      text="❌ Game not found."
+    )
+    return
+
+  if current_game:
+    terminate_game(current_game)
+
+  slots = empty_slots(game)
+  msg = await context.bot.send_message(
+    chat_id=update.effective_chat.id,
+    text=(
+      "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+      "Names should be separated by spaces or each on a line.\n"
+      f"The game has room for {slots} players."
+    ),
+  )
+
+  add_user_to_game(user, game)
+  session = set_session(
+    chat_id = update.effective_chat.id,
+    message_id = msg.message_id,
+    game_id = game.id,
+    user_id = user.id,
+    bot = context.bot,
+    game_substate = SetupSubstate.INPUT_NAMES
+  )
+
+  #Notifying other sessions that another seat has been reserved
+  slots = empty_slots(game)
+  await broadcast_message(
+    game = game, mode = "edit",
+    text = (
+      "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+      "Names should be separated by spaces or each on a line.\n"
+      f"game has room for {slots} players"
+    ),
+    exclude_chat_ids = [session.chat_id],
+    only_with_substate = SetupSubstate.INPUT_NAMES,
+  )
+
+async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update) # Ensures user
+  
+  if not await check_game(update, context, game):
+    return
+  
+  if game.state == GameState.SETUP:
+    text = "Game is not started yet.\nSee it with /game or start one with /new"
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = text,
+    )
+    return
+  
+  if not await check_ownership(update, context, user, game):
+    return
+  
+  game.restart_game()
+  text = f'Game Restarted\nClick below to start the game.'
+  buttons = [[InlineKeyboardButton("Start Game", callback_data='g:start_round')]]
+  session = get_session_of_chat(update.effective_chat.id)
+  
+  set_all_substates(game, SetupSubstate.FINISHED)
+  await broadcast_message(game = game, mode = "edit", text = "Game Restarted by owner", exclude_chat_ids = [session.chat_id])
+  await edit_message(session, text, buttons)
+
+async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update) # Ensures user
+  
+  if not await check_game(update, context, game):
+    return
+  
+  session = get_session_of_chat(update.effective_chat.id)
+  
+  await send_message(session, text = session.text, buttons = session.raw_markup, parse_mode = session.parse_mode)
+
+async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  if update.message:
+    await update.message.delete()
+  elif update.callback_query:
+    await update.callback_query.message.delete()
+
+async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  
+  if not await check_game(update, context, game):
+    return
+  
+  if not await check_ownership(update, context, user, game):
+    return
+  
+  await broadcast_message(game=game, mode="edit", text="Game was ended by owner.")
+  terminate_game(game)
+  return 
+
+async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  
+  if not await check_game(update, context, game):
+    return
+  
+  if await check_ownership(update, context, user, game):
+    await broadcast_message(game = game, mode = "edit", text = "Owner has leaved, so the game has ended.")
+    terminate_game(game)
+    return
+  else:
+    pass #should do something 
+  
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  args = context.args
+
+  # 🟡 No message
+  if not args:
+    await update.message.reply_text(
+      "Usage:\n/broadcast <message>\n\nExample:\n/broadcast hurry up!"
+    )
+    return
+
+  if not await check_game(update, context, game):
+    return
+
+  message_text = " ".join(args)
+
+
+  # 🔥 Send to all sessions in game except sender
+  sender_session = get_session_of_user(user.id)
+  for cid in game.chat_ids:
+    session = get_session_of_chat(cid)
+    if session == sender_session:
+      continue
+
+    formatted = f"{sender_session.players[0].name}: {message_text}"
+    try:
+      await context.bot.send_message(
+        chat_id = session.chat_id,
+        text = formatted
+      )
+    except Exception as e:
+      print(f"Broadcast failed for session {session.chat_id}: {e}")
+
+async def check_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game):
+  if not game:
+    if update.callback_query:
+      await update.callback_query.answer(
+        text = "You are not in a game."
+      )
+    else:
+      await context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text = "You have no running game.\nTry /new to start one" 
+      )
+    return False
+  return True
+
+async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE, user: User, game: Game):
+  if game.owner_id != user.id:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "You are not the owner.\nYou can leave the game using /leave"
+    )
+    return False
+  return True
+
+start_bot_handler = CommandHandler('start', start_bot)
+start_new_game_handler = CommandHandler('new', start_new_game)
+help_handler = CommandHandler('help', help)
+join_handler = CommandHandler('join', join_game)
+reset_handler = CommandHandler('restart', restart_game)
+resend_handler = CommandHandler('game', resend_game)
+end_handler = CommandHandler('end', end_game)
+help_callback_handler = CallbackQueryHandler(help, pattern='help')
+del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')
+broadcast_handler =  CommandHandler(["broadcast", "bc"], broadcast)
+
+user_commands_handlers = [
+  start_bot_handler,
+  start_new_game_handler,
+  help_handler,
+  join_handler,
+  reset_handler,
+  resend_handler,
+  end_handler,
+  help_callback_handler,
+  del_message_handler,
+  broadcast_handler,
+]
