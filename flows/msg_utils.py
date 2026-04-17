@@ -64,7 +64,7 @@ async def broadcast_message(game: Game, mode: str, text: str, buttons: list[list
   if only_with_substate:
     valid_sessions = []
     for session in sessions:
-      if only_with_substate == sessions.game_substate:
+      if only_with_substate == session.game_substate:
         valid_sessions.append(session)
     sessions = valid_sessions
   
