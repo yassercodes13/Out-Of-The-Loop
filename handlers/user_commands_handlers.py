@@ -43,7 +43,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   args = context.args
 
   if not args:
-    text = "🎮 To join a game use:\n/join <game_code>\n\nExample:\n/join 12345"
+    text = "🎮 To join a game use:\n/join <game_code>\n\nExample:\n/join 3AB9J4"
 
     if current_game:
       text = (
@@ -58,24 +58,23 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
       text=text
     )
     return
-
-  try:
-    code = int(args[0])
-  except Exception:
-    await context.bot.send_message(
-      chat_id = update.effective_chat.id,
-      text = "❌ Invalid code format. Use numbers only.\nExample: /join 12345"
-    )
-    return
-
+  
+  code = args[0]
   game = get_game_by_id(code)
   if not game:
     await context.bot.send_message(
       chat_id=update.effective_chat.id,
-      text="❌ Game not found."
+      text=f"Game with code {args[0]} is not found."
     )
     return
-
+  
+  if current_game == game:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "You are already in this game.\nuse /game to see it."
+    )
+    return
+  
   if current_game:
     terminate_game(current_game)
 

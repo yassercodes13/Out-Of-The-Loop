@@ -1,18 +1,15 @@
 import random
-import time
 from config import *
 from data.modes import GameMode
 from flows.states import GameState
-from flows.substates import SetupSubstate
 from models.player import Player
-from models.session import Session
 from data.default_categories import *
 
 class Game:
 
-  def __init__(self, owner_id):
+  def __init__(self, game_id, owner_id):
     #ids
-    self.id        = self.generate_game_id()
+    self.id        = game_id
     self.owner_id  = owner_id
     self.user_ids  = [owner_id]
     self.chat_ids: list[int]  = [] 
@@ -61,12 +58,7 @@ class Game:
     self.sessions_ready = 0
     self.turn_index = 0
     self.names = []
-
-
-
-  def generate_game_id(self):
-    id = int(time.time() * 10000) + random.randint(0, 9999)
-    return id
+        
 
   def start_round(self):
     self.reset_round()
