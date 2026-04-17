@@ -135,7 +135,7 @@ def get_session_of_user(user_id):
       
   return None
 
-def get_all_sessions(game: Game = None, game_id: int = None, excluded: list[int] = []):
+def get_all_sessions(game: Game = None, game_id: int = None, excluded: list[int] = []) -> list[Session]:
   if not game:
     if not game_id:
       return []
