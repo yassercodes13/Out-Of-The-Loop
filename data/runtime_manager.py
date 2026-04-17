@@ -19,7 +19,7 @@ def create_game(user_id: int):
 
   return game
 
-def terminate_game(game: Game = None, game_id: int = None):
+def terminate_game(game: Game = None, game_id: str = None):
   if not game:
     if not game_id:
       return None
@@ -81,7 +81,7 @@ def add_user_to_game(user: User, game: Game):
 #               Session               #
 #######################################
 
-def set_session(chat_id: int, message_id: int, game_id: int, user_id: int, bot, game_substate = None):
+def set_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot, game_substate = None):
   old_session = active_sessions.get(chat_id)
   if old_session:
     terminate_session(old_session)
@@ -111,7 +111,7 @@ def terminate_session(session: Session = None, chat_id: int = None):
         game.chat_ids.pop(i)
         break
 
-def get_session_of_owner(game: Game = None, game_id: int = None):
+def get_session_of_owner(game: Game = None, game_id: str = None):
   if not game:
     if not game_id:
       return None
@@ -135,7 +135,7 @@ def get_session_of_user(user_id):
       
   return None
 
-def get_all_sessions(game: Game = None, game_id: int = None, excluded: list[int] = []) -> list[Session]:
+def get_all_sessions(game: Game = None, game_id: str = None, excluded: list[int] = []) -> list[Session]:
   if not game:
     if not game_id:
       return []
@@ -154,7 +154,7 @@ def get_all_sessions(game: Game = None, game_id: int = None, excluded: list[int]
   return sessions
 
 
-def ensure_session(chat_id: int, message_id: int, game_id: int, user_id: int, bot):
+def ensure_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot):
   session = get_session_of_chat(chat_id)
   if not session:
     session = set_session(chat_id, message_id, game_id, user_id, bot)
