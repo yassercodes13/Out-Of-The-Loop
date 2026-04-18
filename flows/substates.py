@@ -96,6 +96,7 @@ class ResultsSubstate(str, Enum):
   ROUND_RESULTS = "round_results"                 # Round results screen
   ROUND_REPORT = "round_report"                   # Round report screen
   FINAL_RESULTS = "final_ersults"                 # End game results
+  EDIT_SCORE = "edit_score"                       # Edit players scores
 
 
 # ------------------

@@ -37,7 +37,7 @@ async def handle_guess_word(update: Update, game: Game, session: Session):
 
     result_message = f"{word} is Correct!" if result else f'{word} is Wrong! The word was "{game.word}"'
     text = f"{result_message}\n\nNow Let's see results"
-    buttons = [[InlineKeyboardButton("See Results", callback_data = "g:results")]]
+    buttons = [[InlineKeyboardButton("See Results", callback_data = "g:round_results")]]
     
     owner_session = get_session_of_owner(game=game)
     

@@ -235,16 +235,16 @@ async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE, us
     return False
   return True
 
-start_bot_handler = CommandHandler('start', start_bot)
-start_new_game_handler = CommandHandler('new', start_new_game)
 help_handler = CommandHandler('help', help)
-join_handler = CommandHandler('join', join_game)
-reset_handler = CommandHandler('restart', restart_game)
-resend_handler = CommandHandler('game', resend_game)
 end_handler = CommandHandler('end', end_game)
+join_handler = CommandHandler('join', join_game)
+resend_handler = CommandHandler('game', resend_game)
+start_bot_handler = CommandHandler('start', start_bot)
+reset_handler = CommandHandler('restart', restart_game)
+start_new_game_handler = CommandHandler('new', start_new_game)
+broadcast_handler = CommandHandler(["broadcast", "bc"], broadcast)
 help_callback_handler = CallbackQueryHandler(help, pattern='help')
 del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')
-broadcast_handler =  CommandHandler(["broadcast", "bc"], broadcast)
 
 user_commands_handlers = [
   start_bot_handler,

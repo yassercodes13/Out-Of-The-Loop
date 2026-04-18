@@ -81,7 +81,7 @@ async def handle_vote_words(update: Update, game: Game, session: Session):
     else:    
       result_message = game.check_team_guess()
       text = f"{result_message}Now Let's see round results"
-      buttons = [[InlineKeyboardButton("See Results", callback_data = "g:results")]]
+      buttons = [[InlineKeyboardButton("See Results", callback_data = "g:round_results")]]
 
       owner_session = get_session_of_owner(game = game)
       await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [owner_session.chat_id])

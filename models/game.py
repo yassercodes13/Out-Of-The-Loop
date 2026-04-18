@@ -400,8 +400,8 @@ class Game:
   def remove_player(self, id: int):
     self.players = [p for p in self.players if p.id != id]
   
-  def round_result(self):
-    if self.round_result_text:
+  def round_result(self, rewrite = False):
+    if self.round_result_text and not rewrite:
       return self.round_result_text
     
     for player in self.players:
