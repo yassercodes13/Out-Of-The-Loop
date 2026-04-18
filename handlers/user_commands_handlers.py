@@ -11,7 +11,7 @@ async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will
   user = ensure_user(update.effective_user.id)
 
   keyboard = [
-    [InlineKeyboardButton("Start a new game!", callback_data = 's:setup_game')],
+    [InlineKeyboardButton("Start a new game", callback_data = 's:setup_game')],
     [InlineKeyboardButton("View game rules", callback_data = 'help')],
   ]
   
