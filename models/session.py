@@ -37,14 +37,21 @@ class Session:
     self.raw_markup = [row[:] for row in session.raw_markup]
     self.parse_mode = session.parse_mode
 
-  def build_markup(self):
+  
+  def build_buttons(self):
     if not self.raw_markup:
       return None
 
-    return InlineKeyboardMarkup([
+    return [
       [InlineKeyboardButton(text, callback_data=data) for text, data in row]
       for row in self.raw_markup
-    ])
+    ]
   
+  def build_markup(self):
+    if not self.raw_markup:
+      return None
+    
+    return InlineKeyboardMarkup(self.build_buttons())
+
   def prepare_players(self, names, game):
     self.players.extend(game.prepare_players(self.chat_id, names))

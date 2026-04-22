@@ -28,7 +28,7 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
 
     chat_id = update.effective_chat.id
     message_id = update.effective_message.message_id
-    game = create_game(user_id = user.id)
+    game = create_game(user_id = user.id, username = user.username)
     session = set_session(chat_id = chat_id, message_id = message_id, game_id = game.id, user_id = user.id, bot = context.bot)
     game.state = GameState.SETUP
 

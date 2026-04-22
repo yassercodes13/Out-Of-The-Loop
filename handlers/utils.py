@@ -3,7 +3,7 @@ from data.runtime import *
 from data.runtime_manager import *
 
 def get_user_game(update: Update):
-  user = ensure_user(update.effective_chat.id)
+  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
   game = get_game_of_user(user = user)  
   return (user, game)
 

@@ -8,7 +8,12 @@ from flows.substates import SetupSubstate
 from handlers.utils import *
 
 async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will change this to proper start later...
-  user = ensure_user(update.effective_user.id)
+  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+
+  if context.args:
+    await join_game(update, context)
+    return
+
 
   keyboard = [
     [InlineKeyboardButton("Start a new game", callback_data = 's:setup_game')],
@@ -22,7 +27,7 @@ async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will
   )
 
 async def start_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user = ensure_user(update.effective_user.id)
+  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
 
   keyboard = [
     [InlineKeyboardButton("Start it", callback_data = 's:setup_game')],
@@ -43,7 +48,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   args = context.args
 
   if not args:
-    text = "🎮 To join a game use:\n/join <game_code>\n\nExample:\n/join 3AB9J4"
+    text = "To join a game use:\n/join <game_code>\n\nExample:\n/join 3AB9J4"
 
     if current_game:
       text = (
@@ -144,8 +149,7 @@ async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
   
   session = get_session_of_chat(update.effective_chat.id)
-  
-  await send_message(session, text = session.text, buttons = session.raw_markup, parse_mode = session.parse_mode)
+  await send_message(session, text = session.text, buttons = session.build_buttons(), parse_mode = session.parse_mode)
 
 async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if update.message:
@@ -197,7 +201,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
   # 🔥 Send to all sessions in game except sender
-  sender_session = get_session_of_user(user.id)
+  sender_session = get_session_of_user(user.id, user.username)
   for cid in game.chat_ids:
     session = get_session_of_chat(cid)
     if session == sender_session:

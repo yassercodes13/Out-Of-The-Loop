@@ -6,7 +6,7 @@ from data.runtime_manager import *
 from handlers.utils import *
 from data.default_categories import default_categories
 from data.modes import GameMode
-from config import MIN_PLAYERS, MAX_PLAYERS
+from config import BOT_USERNAME
 from models.category import Category
 
 
@@ -75,13 +75,21 @@ async def handle_setup(update: Update, game: Game, session: Session):
     elif game.type == "multiple":
       slots = empty_slots(game)
       text = (
-        "Share this game code with your friends so they can join:\n\n"
+        "Share this game code with your friends so they can join:\n"
         f"{game.id}\n\n"
+        "Or forawrd the next message to their chat\n\n"
         "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
         "Names should be separated by spaces or each on a line.\n"
         f"game has room for {slots} players"
       )
       await edit_message(session, text)
+
+      user = get_user_by_id(session.user_id)
+      await session.bot.send_message(
+        chat_id = session.chat_id,
+        text = f"Join an out of the loop game by: {user.username}!",
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join", url = f"https://t.me/{BOT_USERNAME}?start={game.id}")]])
+      )
 
     return False
 
