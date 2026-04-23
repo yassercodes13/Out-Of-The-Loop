@@ -11,7 +11,8 @@ class SetupSubstate(str, Enum):
   WAITING = "waiting"                     # Waiting for other players to input their names (only for multiple phones mode)
   CHOOSE_ROUNDS = "choose_rounds"
   CHOOSE_CATEGORY = "choose_category"
-  ADD_CATEGORY = "add_category"
+  CREATE_CATEGORY = "create_category"
+  CATEGORY_SETTINGS = "category_settings" 
   CHOOSE_MODE = "choose_mode"
   EDIT_RANDOM_MODE = "edit_random_mode"
   FINISHED = "finished"

@@ -22,8 +22,9 @@ class Game:
     self.round_number = 0
     self.random_mode = False
     self.random_category = False
+    self.all_categories : list[Category] = []
     self.random_mode_options: list[GameMode] = [] # Only used if random mode is chosen, stores the options the owner can choose from
-    self.user_categories = []
+    self.random_category_options: list[Category] = [] # Only used if random category is chosen, stores the options the owner can choose from
     self.intial_players_count = 0
     self.final_result_text: str = ""
 
@@ -133,7 +134,7 @@ class Game:
       self.random_category = True
     
     if self.random_category:
-      self.category = random.choice(default_categories + self.user_categories)
+      self.category = random.choice(self.random_category_options)
     
     og_list = self.category.words.copy()
     word_list = [w for w in og_list if w not in self.used_words] #Only ones not used before

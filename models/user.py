@@ -1,5 +1,6 @@
 from data.default_categories import default_categories
 from data.modes import GameMode
+from models.category import Category
 
 class User:
   def __init__(self, id, username):
@@ -7,8 +8,8 @@ class User:
     self.game_id = None
     self.username = username
     self.random_modes = [m for m in GameMode if m != GameMode.RANDOM]
-    self.random_categories = [cat for cat in default_categories]
-    self.generated_categories = []
+    self.random_categories: list[Category] = [cat for cat in default_categories]
+    self.generated_categories: list[Category] = []
     self.least_random = 4
 
   def set_least_random(self):
