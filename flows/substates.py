@@ -8,11 +8,9 @@ class SetupSubstate(str, Enum):
   PLAYERS_COUNT = "players_count"
   GAME_TYPE = "game_type"
   INPUT_NAMES = "input_names"
-  WAITING = "waiting"                     # Waiting for other players to input their names (only for multiple phones mode)
+  WAITING = "waiting"
   CHOOSE_ROUNDS = "choose_rounds"
   CHOOSE_CATEGORY = "choose_category"
-  CREATE_CATEGORY = "create_category"
-  CATEGORY_SETTINGS = "category_settings" 
   CHOOSE_MODE = "choose_mode"
   EDIT_RANDOM_MODE = "edit_random_mode"
   FINISHED = "finished"
@@ -25,7 +23,7 @@ class CategorySettingsSubstate(str, Enum):
   DELETE = "delete"                      # Deleting a category (only for user generated categories)
   CREATE = "create"                      # Creating a new category
   VIEW = "view"                          # Viewing category words
-  TOGGLE_RANDOM = "toggle_random"        # Toggling category inclusion in random selection
+  TOGGLE = "toggle"        # Toggling category inclusion in random selection
 
 # ----------------------
 # INFORM

@@ -1,3 +1,4 @@
+from flows.category_settings import make_category_buttons
 from flows.msg_utils import *
 from flows.states import GameState
 from flows.substates import SetupSubstate
@@ -258,18 +259,18 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
   # --- CHOOSE CATEGORY ---
   if (session.game_substate == SetupSubstate.CHOOSE_ROUNDS and data == ("s:rounds:done")) or session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data and (data == "s:choose_category" or data.startswith("s:next_cats:")):
-    
+
     user = get_user_by_id(update.effective_user.id)
     game.all_categories = user.generated_categories + default_categories 
     text = f"Number of rounds set: {game.num_rounds}\n\nNow choose words category:"
     
-    cat_start_idx = 0
+    start_idx = 0
 
     if query.data and query.data.startswith("s:next_cats:"):
-      cat_start_idx = int(query.data.split(':')[2])
-      cat_start_idx = max(0, min(cat_start_idx, len(game.all_categories)-1))
+      start_idx = int(query.data.split(':')[2])
+      start_idx = max(0, min(start_idx, len(game.all_categories)-1))
 
-    buttons = make_category_buttonss(cat_start_idx, user, game.all_categories, callback_prefix = "s:cat", show_random = True)
+    buttons = make_category_buttons(start_idx, user, game.all_categories, callback_prefix = "s:cat", show_random = True)
     buttons.append([InlineKeyboardButton(text = "🎲 Random", callback_data='s:cat:random')])
     buttons.append([InlineKeyboardButton(text = "⚙️ Category Settings", callback_data='s:cat_settings')])
 
@@ -396,34 +397,3 @@ async def handle_setup(update: Update, game: Game, session: Session):
     return True
   
   return False
-
-def make_category_buttonss(cat_start_idx: int, user: User, categories: list[Category], callback_prefix: str = "", extra_prefix: str = "", show_random = False, show_marks = False):
-  
-  if show_random:
-    buttons = [
-      [InlineKeyboardButton(text = f"{cat.title} (R)" if cat in user.random_categories else cat.title, callback_data = f"{callback_prefix}:{i}")] 
-        for i,cat in enumerate(categories) if cat_start_idx <= i < 5 + cat_start_idx
-    ]
-  elif show_marks:
-    buttons = [
-      [InlineKeyboardButton(text = cat.title + (" ✔" if cat in user.random_categories else " ✘"), callback_data = f"{callback_prefix}:{i}")] 
-        for i,cat in enumerate(categories) if cat_start_idx <= i < 5 + cat_start_idx
-    ]
-  else:
-    buttons = [
-      [InlineKeyboardButton(text = cat.title, callback_data = f"{callback_prefix}:{i}")] 
-        for i,cat in enumerate(categories) if cat_start_idx <= i < 5 + cat_start_idx
-    ]
-
-  nav_buttons = []
-  if cat_start_idx != 0:
-    nav_buttons.append(
-      InlineKeyboardButton(text = "<<", callback_data = f"s:{extra_prefix}next_cats:{cat_start_idx - 5}")
-    )
-  if cat_start_idx + 5 < len(categories):
-    nav_buttons.append(
-      InlineKeyboardButton(text = ">>", callback_data = f"s:{extra_prefix}next_cats:{cat_start_idx + 5}")
-    )
-  buttons.append(nav_buttons)
-
-  return buttons
