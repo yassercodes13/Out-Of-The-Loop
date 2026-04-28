@@ -1,3 +1,4 @@
+from flows.category_settings import handle_category_settings
 from handlers.utils import *
 from telegram import Update
 from models.game import Game
@@ -35,6 +36,9 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
   # --- route to correct flow ---
   if game.state == GameState.SETUP:
     state_changed = await handle_setup(update, game, session)
+
+  elif game.state == GameState.CATEGORY_SETTINGS:
+    state_changed = await handle_category_settings(update, game, session)
 
   elif game.state == GameState.INFORM:
     state_changed = await handle_informing(update, game, session)

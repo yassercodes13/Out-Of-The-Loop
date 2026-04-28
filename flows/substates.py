@@ -17,6 +17,15 @@ class SetupSubstate(str, Enum):
   EDIT_RANDOM_MODE = "edit_random_mode"
   FINISHED = "finished"
 
+# ----------------------
+# CATEGORY SETTINGS
+# ----------------------
+class CategorySettingsSubstate(str, Enum):
+  MAIN = "main"                          # Main category settings screen
+  DELETE = "delete"                      # Deleting a category (only for user generated categories)
+  CREATE = "create"                      # Creating a new category
+  VIEW = "view"                          # Viewing category words
+  TOGGLE_RANDOM = "toggle_random"        # Toggling category inclusion in random selection
 
 # ----------------------
 # INFORM
