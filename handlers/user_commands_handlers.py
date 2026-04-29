@@ -182,6 +182,33 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
   else:
     pass #should do something 
+
+async def sttings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  
+  if game:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "You can't edit settings in a running game.\nTry /end to end the current game or /game to see it."
+    )
+    return
+
+  new_message = await context.bot.send_message(
+    chat_id = update.effective_chat.id,
+    text = "Choose what you want to edit",
+    reply_markup = InlineKeyboardMarkup([
+      [InlineKeyboardButton("Categories", callback_data = "e:categories")],
+      [InlineKeyboardButton("Done", callback_data = f"e:done")]
+    ])
+  )
+
+  session = set_session(
+    chat_id = update.effective_chat.id,
+    message_id = new_message.message_id,
+    game_id = None,
+    user_id = update.effective_user.id,
+    bot = context.bot,
+  )
   
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = get_user_game(update)
@@ -246,6 +273,7 @@ resend_handler = CommandHandler('game', resend_game)
 start_bot_handler = CommandHandler('start', start_bot)
 reset_handler = CommandHandler('restart', restart_game)
 start_new_game_handler = CommandHandler('new', start_new_game)
+edit_settings_handler = CommandHandler('settings', sttings)
 broadcast_handler = CommandHandler(["broadcast", "bc"], broadcast)
 help_callback_handler = CallbackQueryHandler(help, pattern='help')
 del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')
@@ -261,4 +289,5 @@ user_commands_handlers = [
   help_callback_handler,
   del_message_handler,
   broadcast_handler,
+  edit_settings_handler,
 ]

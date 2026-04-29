@@ -1,5 +1,7 @@
 from flows.category_settings import handle_category_settings
+from flows.substates import AnyCategorySettingsSubstate
 from handlers.utils import *
+from flows.msg_utils import *
 from telegram import Update
 from models.game import Game
 from models.session import Session
@@ -20,9 +22,10 @@ from flows.guess_outsider import handle_guess_outsider
 async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Game = None, session:Session = None):
   state_changed = False
   query = update.callback_query
+  data = query.data if query else None
 
   # --- init game if not set ---
-  if query and query.data == "s:setup_game":
+  if data == "s:setup_game":
     user, game = get_user_game(update) #Ensures user exists
     if game:
       terminate_game(game)
@@ -33,39 +36,60 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
     session = set_session(chat_id = chat_id, message_id = message_id, game_id = game.id, user_id = user.id, bot = context.bot)
     game.state = GameState.SETUP
 
+  elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate):
+    
+    if data == "e:done":
+      buttons = [
+        [InlineKeyboardButton("Categories", callback_data = "e:categories")],
+        [InlineKeyboardButton("Done", callback_data = f"e:done")]
+      ]
+
+      if session.game_substate is None:
+        await edit_message(session, text = "Settings Saved!")
+        terminate_session(session = session)
+    
+      else:
+        await edit_message(session, text = "Choose what you want to edit", buttons = buttons)
+        session.game_substate = None
+    
+    elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":
+      state_changed = await handle_category_settings(update, game, session)
+
+
   # --- route to correct flow ---
-  if game.state == GameState.SETUP:
-    state_changed = await handle_setup(update, game, session)
+  if game:
+    if game.state == GameState.SETUP:
+      state_changed = await handle_setup(update, game, session)
 
-  elif game.state == GameState.CATEGORY_SETTINGS:
-    state_changed = await handle_category_settings(update, game, session)
+    elif game.state == GameState.CATEGORY_SETTINGS:
+      state_changed = await handle_category_settings(update, game, session)
 
-  elif game.state == GameState.INFORM:
-    state_changed = await handle_informing(update, game, session)
+    elif game.state == GameState.INFORM:
+      state_changed = await handle_informing(update, game, session)
 
-  elif game.state == GameState.QUESTION:
-    state_changed = await handle_questioning(update, game, session)
+    elif game.state == GameState.QUESTION:
+      state_changed = await handle_questioning(update, game, session)
 
-  elif game.state == GameState.VOTE:
-    state_changed = await handle_voting(update, game, session)
+    elif game.state == GameState.VOTE:
+      state_changed = await handle_voting(update, game, session)
 
-  elif game.state == GameState.REVEAL:
-    state_changed = await handle_reveal(update, game, session)
+    elif game.state == GameState.REVEAL:
+      state_changed = await handle_reveal(update, game, session)
 
-  elif game.state == GameState.GUESS_WORD:
-    state_changed = await handle_guess_word(update, game, session)
+    elif game.state == GameState.GUESS_WORD:
+      state_changed = await handle_guess_word(update, game, session)
 
-  elif game.state == GameState.GUESS_OUTSIDER:
-    state_changed = await handle_guess_outsider(update, game, session)
+    elif game.state == GameState.GUESS_OUTSIDER:
+      state_changed = await handle_guess_outsider(update, game, session)
 
-  elif game.state == GameState.VOTE_WORDS:
-    state_changed = await handle_vote_words(update, game, session)
+    elif game.state == GameState.VOTE_WORDS:
+      state_changed = await handle_vote_words(update, game, session)
 
-  elif game.state == GameState.GUESS_TEAMS:
-    state_changed = await handle_guess_teams(update, game, session)
+    elif game.state == GameState.GUESS_TEAMS:
+      state_changed = await handle_guess_teams(update, game, session)
 
-  elif game.state == GameState.RESULTS:
-    state_changed = await handle_results(update, game, session)
+    elif game.state == GameState.RESULTS:
+      state_changed = await handle_results(update, game, session)
 
   # --- reroute on state change ---
   if state_changed:

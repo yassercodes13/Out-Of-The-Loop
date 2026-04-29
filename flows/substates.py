@@ -112,6 +112,7 @@ class ResultsSubstate(str, Enum):
 # ------------------
 AnySubstate = Union[
   SetupSubstate,
+  CategorySettingsSubstate,
   InformSubstate,
   QuestionSubstate,
   VoteSubstate,
@@ -121,4 +122,13 @@ AnySubstate = Union[
   VoteWordsSubstate,
   GuessTeamsSubstate,
   ResultsSubstate
+]
+
+
+AnyCategorySettingsSubstate = [
+  CategorySettingsSubstate.MAIN,
+  CategorySettingsSubstate.TOGGLE,
+  CategorySettingsSubstate.DELETE,
+  CategorySettingsSubstate.CREATE,
+  CategorySettingsSubstate.VIEW
 ]

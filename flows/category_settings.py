@@ -13,32 +13,39 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
   user = get_user_by_id(session.user_id)
   all_categories = user.generated_categories + default_categories
 
-  if session.game_substate is None or data == "s:cat_settings":
+  if session.game_substate is None or data == "e:categories":
     session.game_substate = CategorySettingsSubstate.MAIN
   
-  elif session.game_substate == CategorySettingsSubstate.MAIN and data == "s:choose_category":
+  elif game and session.game_substate == CategorySettingsSubstate.MAIN and data == "s:choose_category":
     game.state = GameState.SETUP
     session.game_substate = SetupSubstate.CHOOSE_CATEGORY
     return True
+  
+  elif session.game_substate == CategorySettingsSubstate.MAIN and data == "e:done":
+    return True
 
 # --- CATEGORY SETTINGS ---
-  if session.game_substate == CategorySettingsSubstate.MAIN and data == "s:cat_settings":
+  if session.game_substate == CategorySettingsSubstate.MAIN and data == "e:categories":
     text = "What do you want to do?"
     buttons = [
-      [InlineKeyboardButton(text = "Edit Random Categories", callback_data = "s:toggle")],
-      [InlineKeyboardButton(text = "Create Category", callback_data = "s:create")],
-      [InlineKeyboardButton(text = "Delete Category", callback_data = "s:delete")],
-      [InlineKeyboardButton(text = "View Category", callback_data = "s:view")],
-      [InlineKeyboardButton(text = "Back to category selection", callback_data = f"s:choose_category")]
+      [InlineKeyboardButton(text = "Edit Random Categories", callback_data = "e:toggle")],
+      [InlineKeyboardButton(text = "Create Category", callback_data = "e:create")],
+      [InlineKeyboardButton(text = "Delete Category", callback_data = "e:delete")],
+      [InlineKeyboardButton(text = "View Category", callback_data = "e:view")],
     ]
+    
+    if game:
+      buttons.append([InlineKeyboardButton(text = "Back to category selection", callback_data = f"s:choose_category")])
+    else:
+      buttons.append([InlineKeyboardButton(text = "Done", callback_data = f"e:done")])
 
     await edit_message(session, text, buttons)
     return False
   
-  if session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.DELETE] and data and (data.startswith("s:delete") or data.startswith("s:next_cats:")):
+  if session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.DELETE] and data and (data.startswith("e:delete") or data.startswith("e:next_cats:")):
     
     session.game_substate = CategorySettingsSubstate.DELETE
-    if data == "s:delete" or data.startswith("s:next_cats:"):
+    if data == "e:delete" or data.startswith("e:next_cats:"):
       categories = user.generated_categories
       if not categories:
         await update.callback_query.answer("You have no custom categories to delete.", show_alert=True)
@@ -47,17 +54,17 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       
       start_idx = 0
 
-      if query.data and query.data.startswith("s:next_cats:"):
+      if query.data and query.data.startswith("e:next_cats:"):
         start_idx = int(query.data.split(':')[2])
         start_idx = max(0, min(start_idx, len(categories)-1))
 
-      buttons = make_category_buttons(start_idx, user, categories, callback_prefix = "s:delete")
-      buttons.append([InlineKeyboardButton(text = "Back to category settings", callback_data = "s:cat_settings")])
+      buttons = make_category_buttons(start_idx, user, categories, callback_prefix = "e:delete")
+      buttons.append([InlineKeyboardButton(text = "Back to category settings", callback_data = "e:categories")])
       text = "Select a category to delete:"
       await edit_message(session, text, buttons)
       return False
 
-    elif data and data.startswith("s:delete:"):
+    elif data and data.startswith("e:delete:"):
       idx = int(data.split(':')[2])
       
       if 0 <= idx < len(user.generated_categories):
@@ -67,14 +74,14 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         await update.callback_query.answer("Invalid category", show_alert=False)
       
       buttons = [
-        [InlineKeyboardButton(text = "Yes, delete it", callback_data = f"s:delete_confirm:{idx}")],
-        [InlineKeyboardButton(text = "No, keep it", callback_data = f"s:delete")]
+        [InlineKeyboardButton(text = "Yes, delete it", callback_data = f"e:delete_confirm:{idx}")],
+        [InlineKeyboardButton(text = "No, keep it", callback_data = f"e:delete")]
       ]
 
       await edit_message(session, text, buttons)
       return False
     
-    elif data and data.startswith("s:delete_confirm:"):
+    elif data and data.startswith("e:delete_confirm:"):
       idx = int(data.split(':')[2])      
       
       if 0 <= idx < len(user.generated_categories):
@@ -90,17 +97,17 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         return False
 
       buttons = [
-        [InlineKeyboardButton(text = "Delete another category", callback_data = "s:delete")],
-        [InlineKeyboardButton(text = "Back to category settings", callback_data = "s:cat_settings")],
+        [InlineKeyboardButton(text = "Delete another category", callback_data = "e:delete")],
+        [InlineKeyboardButton(text = "Back to category settings", callback_data = "e:categories")],
       ]
       await edit_message(session, text, buttons)
       return False
   
-  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.TOGGLE] and data and (data.startswith("s:toggle") or data.startswith("s:next_cats:")):
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.TOGGLE] and data and (data.startswith("e:toggle") or data.startswith("e:next_cats:")):
     session.game_substate = CategorySettingsSubstate.TOGGLE
     start_idx = 0
     
-    if data.startswith("s:toggle:"):
+    if data.startswith("e:toggle:"):
       category_idx = int(data.split(':')[2])
       category = all_categories[category_idx]
       
@@ -114,53 +121,53 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         await update.callback_query.answer("You must have at least 2 categories selected for random category option to be available.", show_alert=True)
         return False
 
-    elif data.startswith("s:next_cats:"): 
+    elif data.startswith("e:next_cats:"): 
       start_idx = int(query.data.split(':')[2])
       start_idx = max(0, min(start_idx, len(all_categories)-1))
     
     text = "Click a button to toggle if that category should be included in random category selection\n\nYou must have at least 2 categories selected for random category option to be available."
-    buttons = make_category_buttons(start_idx, user, all_categories, show_marks = True, callback_prefix = "s:toggle")
-    buttons.append([InlineKeyboardButton(text = "Done", callback_data = "s:cat_settings")])
+    buttons = make_category_buttons(start_idx, user, all_categories, show_marks = True, callback_prefix = "e:toggle")
+    buttons.append([InlineKeyboardButton(text = "Done", callback_data = "e:categories")])
 
     await edit_message(session, text, buttons)
     return False
   
-  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.VIEW] and data and (data.startswith("s:view")  or data.startswith("s:next_cats:")):
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.VIEW] and data and (data.startswith("e:view")  or data.startswith("e:next_cats:")):
     session.game_substate = CategorySettingsSubstate.VIEW
 
-    if data == "s:view" or data.startswith("s:next_cats:"):
+    if data == "e:view" or data.startswith("e:next_cats:"):
       start_idx = 0
       if "next_cats" in data:
         start_idx = int(data.split(':')[2])
         start_idx = max(0, min(start_idx, len(all_categories)-1))
       
-      buttons = make_category_buttons(start_idx, user, all_categories, callback_prefix = "s:view")
-      buttons.append([InlineKeyboardButton(text = "Back to category settings", callback_data = "s:cat_settings")])
+      buttons = make_category_buttons(start_idx, user, all_categories, callback_prefix = "e:view")
+      buttons.append([InlineKeyboardButton(text = "Back to category settings", callback_data = "e:categories")])
       text = "Select a category to view:"
       await edit_message(session, text, buttons)
       return False
     
-    elif data.startswith("s:view:"):
+    elif data.startswith("e:view:"):
       category_idx = int(data.split(':')[2])
       if 0 <= category_idx < len(all_categories):
         category = all_categories[category_idx]
         words = "\n".join(category.words)
         text = f"Category: {category.title}\n\nWords ({len(category.words)}):\n{words}"
-        buttons = [[InlineKeyboardButton(text = "Back to view categories", callback_data = "s:view")]]
+        buttons = [[InlineKeyboardButton(text = "Back to view categories", callback_data = "e:view")]]
         await edit_message(session, text, buttons)
         return False
       else:
         await update.callback_query.answer("Invalid category", show_alert=True)
         return False
 
-  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.CREATE] and data == "s:create":
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.CREATE] and data == "e:create":
     session.game_substate = CategorySettingsSubstate.CREATE
     text = (
       "To add a custom category, reply to this message in the following format:\n\n"
       "Category Title\nWord1\nWord2\nWord3\n...\nWordN\n\n"
       "Number of words must be at least 13. Words should be unique."
     )
-    buttons = [[InlineKeyboardButton(text = "Back to category settings", callback_data=f's:cat_settings')],]
+    buttons = [[InlineKeyboardButton(text = "Back to category settings", callback_data=f'e:categories')],]
     await edit_message(session, text, buttons)
     return False
   
@@ -182,7 +189,7 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     user.random_categories.append(new_category) 
 
     text = f"Category '{title}' with {len(words)} words added!\n\nYou can create one more by replying again, or go back to category selection."
-    buttons = [[InlineKeyboardButton(text = "Back to category settings", callback_data=f's:cat_settings')],]
+    buttons = [[InlineKeyboardButton(text = "Back to category settings", callback_data=f'e:categories')],]
     
     old_message = update.message.reply_to_message if update.message else None
     await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
@@ -211,11 +218,11 @@ def make_category_buttons(start_idx: int, user: User, categories: list[Category]
   nav_buttons = []
   if start_idx != 0:
     nav_buttons.append(
-      InlineKeyboardButton(text = "<<", callback_data = f"s:next_cats:{start_idx - 5}")
+      InlineKeyboardButton(text = "<<", callback_data = f"{callback_prefix[0:2]}next_cats:{start_idx - 5}")
     )
   if start_idx + 5 < len(categories):
     nav_buttons.append(
-      InlineKeyboardButton(text = ">>", callback_data = f"s:next_cats:{start_idx + 5}")
+      InlineKeyboardButton(text = ">>", callback_data = f"{callback_prefix[0:2]}next_cats:{start_idx + 5}")
     )
   buttons.append(nav_buttons)
 

@@ -100,16 +100,16 @@ def terminate_session(session: Session = None, chat_id: int = None):
     if not chat_id:
       return
     session = active_sessions.pop(chat_id, None)
+  else:
+    active_sessions.pop(session.chat_id, None)
   
   if session:
     game = get_game_by_id(session.game_id)
-    if not game:
-      return
-    
-    for i,cid in enumerate(game.chat_ids):
-      if cid == session.chat_id:
-        game.chat_ids.pop(i)
-        break
+    if game and session.chat_id in game.chat_ids:
+      game.chat_ids.remove(session.chat_id)
+      return session
+
+  
 
 def get_session_of_owner(game: Game = None, game_id: str = None):
   if not game:

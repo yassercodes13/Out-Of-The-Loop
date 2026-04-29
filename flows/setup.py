@@ -272,7 +272,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
     buttons = make_category_buttons(start_idx, user, game.all_categories, callback_prefix = "s:cat", show_random = True)
     buttons.append([InlineKeyboardButton(text = "🎲 Random", callback_data='s:cat:random')])
-    buttons.append([InlineKeyboardButton(text = "⚙️ Category Settings", callback_data='s:cat_settings')])
+    buttons.append([InlineKeyboardButton(text = "⚙️ Category Settings", callback_data='e:categories')])
 
     
     await edit_message(session, text, buttons)
@@ -280,7 +280,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
     return False
 
   # --- CATEGORY SETTINGS ---
-  if session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data == "s:cat_settings":
+  if session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data == "e:categories":
     game.state = GameState.CATEGORY_SETTINGS
     session.game_substate = None
     return True
