@@ -44,7 +44,7 @@ async def handle_voting(update: Update, game: Game, session: Session):
       text = "Done Voting!"
       waiting_text = "\n\nWaiting for other players to vote."
       
-      button_txt = "Reaveal Outsider"
+      button_txt = "Reveal Outsider"
       if game.mode == GameMode.TEAMS and game.detective:
         button_txt = "Reveal Detective"
       elif game.mode == GameMode.TEAMS:

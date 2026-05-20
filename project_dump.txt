@@ -1,0 +1,3750 @@
+====================================================================================================
+PROJECT TREE
+====================================================================================================
+ootlot
+├── data
+│   ├── __init__.py
+│   ├── default_categories.py
+│   ├── games.py
+│   ├── modes.py
+│   ├── runtime.py
+│   ├── runtime_manager.py
+│   ├── sessions.py
+│   ├── texts.py
+│   └── users.py
+├── flows
+│   ├── __init__.py
+│   ├── category_settings.py
+│   ├── guess_outsider.py
+│   ├── guess_teams.py
+│   ├── guess_word.py
+│   ├── inform.py
+│   ├── msg_utils.py
+│   ├── question.py
+│   ├── results.py
+│   ├── reveal.py
+│   ├── router.py
+│   ├── setup.py
+│   ├── states.py
+│   ├── substates.py
+│   ├── vote.py
+│   └── vote_words.py
+├── handlers
+│   ├── __init__.py
+│   ├── interaction_handlers.py
+│   ├── user_commands_handlers.py
+│   └── utils.py
+├── models
+│   ├── __init__.py
+│   ├── category.py
+│   ├── game.py
+│   ├── player.py
+│   ├── session.py
+│   └── user.py
+├── services
+│   ├── __init__.py
+│   └── game_services.py
+├── __init__.py
+├── config.py
+├── main.py
+└── requirements.txt
+
+
+
+====================================================================================================
+main.py
+====================================================================================================
+
+from config import TOKEN
+from telegram.ext import ApplicationBuilder, Application
+from handlers.user_commands_handlers import user_commands_handlers
+from handlers.interaction_handlers import interaction_handlers  
+
+def main():
+  app = ApplicationBuilder().token(TOKEN).build()
+  add_handlers(app)
+
+  print("Bot Running...")
+  app.run_polling()
+
+def add_handlers(app: Application):
+  for handler in user_commands_handlers:
+    app.add_handler(handler)
+  for handler in interaction_handlers:
+    app.add_handler(handler)
+
+if __name__ == "__main__":
+  main()
+
+
+
+====================================================================================================
+config.py
+====================================================================================================
+
+TOKEN = "8717881762:AAFwhhURXgKPX6NWusxPPmHLIsSfVsKNFYE"
+BOT_USERNAME = "ootl_bot"
+MAX_PLAYERS = 10
+MIN_PLAYERS = 3
+NUM_CHOICES = 7
+
+
+
+
+
+====================================================================================================
+requirements.txt
+====================================================================================================
+
+python-telegram-bot
+
+
+
+
+====================================================================================================
+__init__.py
+====================================================================================================
+
+
+
+
+
+====================================================================================================
+data/__init__.py
+====================================================================================================
+
+
+
+
+
+====================================================================================================
+data/default_categories.py
+====================================================================================================
+
+from models.category import Category
+
+default_categories = [
+  Category(
+    id="builtin_food",
+    title="Food",
+    words=[
+      "Pizza", "Burger", "Sushi", "Pasta", "Salad", "Steak", "Taco", "Ice Cream", "Chocolate", "Fries",
+      "Pancakes", "Waffles", "Burrito", "Ramen", "Dumplings", "Curry", "Omelette", "Lasagna", "Sandwich", "Soup",
+      "Croissant", "Bagel", "Donut", "Muffin", "Brownie", "Cheesecake", "Paella", "Risotto", "Guacamole", "Hummus",
+      "Noodles", "Kebab", "Falafel", "Quiche", "Shrimp", "Lobster", "Bacon", "Sausage", "Popcorn", "Pretzel"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_animals",
+    title="Animals",
+    words=[
+      "Dog", "Cat", "Elephant", "Lion", "Tiger", "Giraffe", "Monkey", "Panda", "Kangaroo", "Zebra",
+      "Dolphin", "Whale", "Shark", "Penguin", "Eagle", "Owl", "Snake", "Turtle", "Frog", "Rabbit",
+      "Horse", "Wolf", "Bear", "Cheetah", "Hippo", "Rhino", "Gorilla", "Koala", "Sloth", "Otter",
+      "Fox", "Deer", "Octopus", "Butterfly", "Bee", "Parrot", "Flamingo", "Camel", "Bat", "Hamster"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_countries",
+    title="Countries",
+    words=[
+      "USA", "Canada", "Brazil", "UK", "France", "Germany", "Italy", "Spain", "Australia", "Japan",
+      "China", "India", "Mexico", "Russia", "South Korea", "Egypt", "Greece", "Turkey", "Sweden", "Norway",
+      "Switzerland", "Netherlands", "Argentina", "Chile", "South Africa", "Nigeria", "Kenya", "Thailand", "Vietnam", "Singapore",
+      "New Zealand", "Ireland", "Portugal", "Belgium", "Austria", "Poland", "Denmark", "Finland", "Iceland", "Peru"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_professions",
+    title="Professions",
+    words=[
+      "Doctor", "Engineer", "Teacher", "Artist", "Chef", "Pilot", "Musician", "Writer", "Scientist", "Athlete",
+      "Nurse", "Architect", "Lawyer", "Firefighter", "Police Officer", "Farmer", "Photographer", "Dentist", "Programmer", "Astronaut",
+      "Electrician", "Plumber", "Carpenter", "Baker", "Barista", "Journalist", "Actor", "Designer", "Mechanic", "Librarian",
+      "Veterinarian", "Pharmacist", "Psychologist", "Accountant", "Soldier", "Tailor", "Coach", "Judge", "Sailor", "Miner"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_places",
+    title="Places",
+    words=[
+      "Airport", "Hospital", "School", "Library", "Museum", "Park", "Beach", "Mountain", "Forest", "Desert",
+      "Restaurant", "Hotel", "Supermarket", "Cinema", "Theater", "Gym", "Stadium", "Church", "Temple", "Castle",
+      "Island", "Bridge", "Harbor", "Factory", "Office", "Bank", "Pharmacy", "Bakery", "Zoo", "Aquarium",
+      "Bakery", "Cafe", "Subway Station", "University", "Gallery", "Skyscraper", "Cottage", "Farm", "Harbor", "Plaza"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_famous_people",
+    title="Famous People",
+    words=[
+      "Albert Einstein", "Leonardo da Vinci", "Marie Curie", "Isaac Newton", "Charles Darwin", "Nikola Tesla", "Abraham Lincoln", "Mahatma Gandhi", "Nelson Mandela", "Martin Luther King Jr",
+      "William Shakespeare", "Jane Austen", "Vincent van Gogh", "Pablo Picasso", "Mozart", "Beethoven", "Elvis Presley", "Michael Jackson", "Marilyn Monroe", "Audrey Hepburn",
+      "Steve Jobs", "Bill Gates", "Elon Musk", "Oprah Winfrey", "Walt Disney", "Stephen Hawking", "Malala Yousafzai", "Mother Teresa", "Amelia Earhart", "Neil Armstrong",
+      "Queen Elizabeth II", "Winston Churchill", "Napoleon Bonaparte", "Julius Caesar", "Cleopatra", "Aristotle", "Socrates", "Plato", "Galileo Galilei", "Marco Polo"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_hobbies",
+    title="Hobbies",
+    words=[
+      "Gardening", "Painting", "Hiking", "Cooking", "Photography", "Dancing", "Reading", "Fishing", "Camping", "Yoga",
+      "Knitting", "Running", "Gaming", "Swimming", "Baking", "Surfing", "Cycling", "Pottery", "Bird Watching", "Chess",
+      "Singing", "Woodworking", "Skydiving", "Bowling", "Skiing", "Skateboarding", "Drawing", "Sewing", "Collecting Stamps", "Magic Tricks",
+      "Traveling", "Origami", "Meditation", "Journaling", "Scuba Diving", "Rock Climbing", "Gardening", "Karaoke", "Billiards", "Darts"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_mythical",
+    title="Mythical Creatures",
+    words=[
+      "Dragon", "Unicorn", "Mermaid", "Vampire", "Werewolf", "Zombie", "Ghost", "Phoenix", "Centaur", "Griffin",
+      "Bigfoot", "Loch Ness Monster", "Leprechaun", "Elf", "Dwarf", "Troll", "Goblin", "Fairies", "Cyclops", "Medusa",
+      "Minotaur", "Pegasus", "Sphinx", "Yeti", "Mummy", "Alien", "Wizard", "Witch", "Genie", "Gnome",
+      "Hydra", "Kraken", "Cerberus", "Banshee", "Valkyrie", "Chupacabra", "Gremlin", "Ogre", "Kappa", "Chimera"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_sports",
+    title="Sports & Games",
+    words=[
+      "Soccer", "Basketball", "Tennis", "Baseball", "Golf", "Football", "Hockey", "Volleyball", "Boxing", "Karate",
+      "Cricket", "Rugby", "Badminton", "Table Tennis", "Dodgeball", "Billiards", "Poker", "Monopoly", "Scrabble", "Chess",
+      "Checkers", "Paintball", "Laser Tag", "Bowling", "Softball", "Lacrosse", "Swimming", "Gymnastics", "Wrestling", "Fencing",
+      "Archery", "Surfing", "Snowboarding", "Skateboarding", "Darts", "Ultimate Frisbee", "Handball", "Pickleball", "Water Polo", "Cornhole"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_household",
+    title="Around the House",
+    words=[
+      "Toaster", "Microwave", "Refrigerator", "Washing Machine", "Vacuum Cleaner", "Television", "Blender", "Coffee Maker", "Dishwasher", "Hair Dryer",
+      "Sofa", "Dining Table", "Bookshelf", "Wardrobe", "Mirror", "Curtains", "Pillow", "Blanket", "Clock", "Lamp",
+      "Hammer", "Screwdriver", "Broom", "Dustpan", "Trash Can", "Toiler Paper", "Toothbrush", "Soap", "Shampoo", "Towel",
+      "Laptop", "Remote Control", "Keyring", "Flashlight", "Umbrella", "Iron", "Kettle", "Picture Frame", "Candle", "Vase"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_clothing",
+    title="Clothing & Fashion",
+    words=[
+      "T-shirt", "Blue Jeans", "Hoodie", "Leather Jacket", "Sneakers", "High Heels", "Sandals", "Boots", "Sunglasses", "Baseball Cap",
+      "Wristwatch", "Necklace", "Backpack", "Scarf", "Gloves", "Winter Coat", "Swimsuit", "Pyjamas", "Socks", "Suit and Tie",
+      "Skirt", "Dress", "Raincoat", "Beanie", "Belt", "Bow Tie", "Tuxedo", "Leggings", "Cardigan", "Vest",
+      "Flip Flops", "Slippers", "Bathrobe", "Uniform", "Sweatpants", "Handbag", "Earrings", "Tights", "Overalls", "Briefcase"
+    ],
+    is_builtin=True
+  ),
+
+  Category(
+    id="builtin_transport",
+    title="Getting Around",
+    words=[
+      "Sports Car", "Motorcycle", "Bicycle", "Helicopter", "Airplane", "Submarine", "Skateboard", "Tractor", "Monster Truck", "Bus",
+      "Train", "Scooter", "Speedboat", "Jet Ski", "Spaceship", "Ambulance", "Fire Truck", "Police Car", "Tank", "Hot Air Balloon",
+      "Cruise Ship", "Taxi", "Pickup Truck", "Van", "Electric Car", "Forklift", "Bulldozer", "Fighter Jet", "Rocket", "Yacht",
+      "Golf Cart", "Snowmobile", "Cargo Ship", "Hang Glider", "Subway", "Tram", "Parachute", "Unicycle", "Amphibious Vehicle", "Hovercraft"
+    ],
+    is_builtin=True
+  ),
+
+
+  Category(
+    id="builtin_action_heroes",
+    title="Heroes & Icons",
+    words=[
+      "Batman", "Superman", "Spider-Man", "Iron Man", "The Hulk", "Thor", "Captain America", "Black Panther", "The Joker", "Wolverine",
+      "Deadpool", "Wonder Woman", "Flash", "Aquaman", "James Bond", "Indiana Jones", "Sherlock Holmes", "Luke Skywalker", "Darth Vader", "John Wick",
+      "Ethan Hunt", "Rocky Balboa", "Terminator", "Robocop", "Neo", "Master Chief", "Kratos", "Lara Croft", "Harry Potter", "Gandalf",
+      "Robin Hood", "Hercules", "Tarzan", "King Kong", "Godzilla", "Zorro", "The Mandalorian", "Black Widow", "Doctor Strange", "Groot"
+    ],
+    is_builtin=True
+  ),
+
+]
+
+
+
+====================================================================================================
+data/games.py
+====================================================================================================
+
+#games.py
+import time
+import random
+import secrets
+from data.runtime import *
+
+ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  
+def make_game(owner_id: int):
+  game_id = generate_game_id(6)
+  game = Game(game_id, owner_id)
+  add_game(game)
+  return game
+
+def add_game(game: Game):
+  active_games[game.id] = game
+
+def get_game_by_id(game_id: str):
+  game = active_games.get(game_id, None)
+  return game
+
+def delete_game(game: Game):
+  return active_games.pop(game.id, None)
+
+def generate_game_id(length = 6):
+  while True:
+    game_id = ''.join(secrets.choice(ALPHABET) for _ in range(length))
+    if game_id not in active_games:
+      return game_id
+
+
+
+====================================================================================================
+data/modes.py
+====================================================================================================
+
+from enum import Enum
+
+class GameMode(Enum):
+  CLASSIC = "Classic"
+  DOUBLE_BLUFF = "Double bluff"
+  SPY = "Spy"
+  THREE_BODY_PROBLEM = "Three Body Problem"
+  TEAMS = "Teams"
+  RANDOM = "Random"
+
+  def __init__(self, label):
+    self.label = label
+
+    # defaults
+    self.min_players = 3
+    self.num_outsiders = 0
+    self.num_spies = 0
+
+    # per-mode config
+    if self.name == "CLASSIC":
+      self.min_players = 3
+      self.num_outsiders = 1
+
+    elif self.name == "DOUBLE_BLUFF":
+      self.min_players = 4
+      self.num_outsiders = 2
+
+    elif self.name == "SPY":
+      self.min_players = 4
+      self.num_outsiders = 1
+      self.num_spies = 1
+
+    elif self.name == "THREE_BODY_PROBLEM":
+      self.min_players = 6
+      self.num_outsiders = 2
+      self.num_spies = 1
+
+    elif self.name == "TEAMS":
+      self.min_players = 4
+
+    elif self.name == "RANDOM":
+      self.min_players = 4
+
+
+
+====================================================================================================
+data/runtime.py
+====================================================================================================
+
+from models.user import User
+from models.game import Game
+from models.session import Session
+
+active_users: dict[int, User] = {}
+active_games: dict[str, Game] = {}
+active_sessions: dict[int, Session] = {}
+
+
+
+====================================================================================================
+data/runtime_manager.py
+====================================================================================================
+
+#runtime_manager.py
+from data.runtime import *
+from data.games import *
+from data.users import *
+from data.sessions import *
+
+
+########################################
+#                 Game                 #
+########################################
+
+def create_game(user_id: int, username: str):
+  user = ensure_user(user_id = user_id, username = username)
+  if user.game_id:
+    terminate_game(game_id = user.game_id)
+  
+  game = make_game(owner_id = user_id)
+  user.game_id = game.id
+
+  return game
+
+def terminate_game(game: Game = None, game_id: str = None):
+  if not game:
+    if not game_id:
+      return None
+    
+    game = get_game_by_id(game_id)
+    if not game:
+      return
+
+  for cid in game.chat_ids:
+    terminate_session(chat_id=cid)
+  
+  for user_id in game.user_ids:
+    user = get_user_by_id(user_id)
+    user.game_id = None
+
+  return active_games.pop(game.id)
+
+
+def get_game_of_user(user: User = None, user_id: int = None, username: str = None):
+  if not user:
+    if not user_id or not username:
+      return None
+    user = ensure_user(user_id = user_id, username = username)
+  
+  if user.game_id:
+    return active_games.get(user.game_id)
+  
+  return None
+
+def get_game_of_session(session: Session = None, chat_id: int = None):
+  if not session:
+    if not chat_id:
+      return None
+    session = active_sessions.get(chat_id)
+  
+  if session and session.game_id:
+    return active_games.get(session.game_id)
+  
+  return None
+
+
+########################################
+#                 User                 #
+########################################
+
+def ensure_user(user_id, username):
+  user = get_user_by_id(user_id)
+  if not user:
+    user = make_user(id = user_id, username = username)
+  return user
+
+def add_user_to_game(user: User, game: Game):
+  user.game_id = game.id
+  if user.id not in game.user_ids:
+    game.user_ids.append(user.id)
+
+
+#######################################
+#               Session               #
+#######################################
+
+def set_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot, game_substate = None):
+  old_session = active_sessions.get(chat_id)
+  if old_session:
+    terminate_session(old_session)
+  
+  new_session = make_session(chat_id, message_id, game_id, user_id, bot, game_substate)
+
+  game = get_game_by_id(game_id)
+  if game:
+    if new_session.chat_id not in game.chat_ids:
+      game.chat_ids.append(new_session.chat_id)
+  
+  return new_session
+
+def terminate_session(session: Session = None, chat_id: int = None):
+  if not session:
+    if not chat_id:
+      return
+    session = active_sessions.pop(chat_id, None)
+  else:
+    active_sessions.pop(session.chat_id, None)
+  
+  if session:
+    game = get_game_by_id(session.game_id)
+    if game and session.chat_id in game.chat_ids:
+      game.chat_ids.remove(session.chat_id)
+      return session
+
+  
+
+def get_session_of_owner(game: Game = None, game_id: str = None):
+  if not game:
+    if not game_id:
+      return None
+    game = get_game_by_id(game_id)
+  
+  if game and game.owner_id:
+    for cid in game.chat_ids:
+      session = active_sessions.get(cid)
+      if session and session.user_id == game.owner_id:
+        return session
+      
+  return None
+
+def get_session_of_user(user_id, username):
+  game = get_game_of_user(user_id = user_id, username = username)
+  if game:
+    for cid in game.chat_ids:
+      session = active_sessions.get(cid)
+      if session and session.user_id == user_id:
+        return session
+      
+  return None
+
+def get_all_sessions(game: Game = None, game_id: str = None, excluded: list[int] = []) -> list[Session]:
+  if not game:
+    if not game_id:
+      return []
+    game = get_game_by_id(game_id)
+  
+  sessions = []
+  if game:
+    for cid in game.chat_ids:
+      if cid in excluded:
+        continue
+
+      session = get_session_of_chat(cid)
+      if session:
+        sessions.append(session)
+  
+  return sessions
+
+
+def ensure_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot):
+  session = get_session_of_chat(chat_id)
+  if not session:
+    session = set_session(chat_id, message_id, game_id, user_id, bot)
+  return session
+
+
+
+====================================================================================================
+data/sessions.py
+====================================================================================================
+
+#sessions.py
+from data.runtime import *
+
+def make_session(chat_id: int, message_id :str, game_id, user_id: int, bot, game_substate = None):
+  session = Session(chat_id = chat_id, message_id = message_id, game_id = game_id, user_id = user_id, bot = bot, game_substate = game_substate)
+  add_session(session)
+  return session
+
+def add_session(session: Session):
+  active_sessions[session.chat_id] = session
+
+def get_session_of_chat(chat_id: int):
+  session = active_sessions.get(chat_id, None)
+  return session
+
+def delete_session(session: Session):
+  return active_sessions.pop(session.chat_id, None)
+
+
+
+====================================================================================================
+data/texts.py
+====================================================================================================
+
+TEXTS = {
+  "en":{
+    "welcome": """
+      Hey there! 👋
+      Welcome to Out Of The Loop Game.
+      This is more than your casual out-of-the-loop game!
+      There are 5 different game modes to choose from, each with its own unique twist on the classic game. Whether you're a seasoned player or new, there's something for everyone to enjoy.
+
+      Here’s a quick guide to get you started:
+
+      🎮 /new       — Start a new game  
+      ❓ /help      — Ask for guidance whenever you feel lost  
+      📊 /game      — Get the running game in a new message  
+      🏁 /restart   — Restart the current game  
+
+      💡 Tip: The game works best with friends in one place.  
+      Pass the phone, follow the buttons, and have fun! 👀
+    """,
+    "help_mode_setup" : """
+      Here you can choose the game mode you want to play.
+      The number in parentheses indicates the minimum number of players required for that mode.
+      The Random mode will randomly select one of the available game modes for you each round.
+      The R next to each number means that the mode is available in the random mode list.
+      If you want to add or remove a mode from the random mode list, click the settings button.
+    """,
+    "help_category_setup" : """
+      Here you can choose the category of games you want to play.
+      The game will randomly choose a word from the category each round to be the secret word.
+      You can also choose to play with a random category, which will randomly select one of the available categories for you each round.
+      If you want to add or remove a category from the random category list, click the settings button.
+    """,
+  }
+}
+
+
+
+====================================================================================================
+data/users.py
+====================================================================================================
+
+#users.py
+from data.runtime import *
+
+def make_user(id: int, username :str):
+  user = User(id = id, username = username)
+  add_user(user)
+  return user
+
+def add_user(user: User):
+  active_users[user.id] = user
+
+def get_user_by_id(user_id: int):
+  user = active_users.get(user_id, None)
+  return user
+
+def delete_user(user: User):
+  return active_users.pop(user.id, None)
+
+
+
+====================================================================================================
+flows/__init__.py
+====================================================================================================
+
+
+
+
+
+====================================================================================================
+flows/category_settings.py
+====================================================================================================
+
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import CategorySettingsSubstate, SetupSubstate
+from telegram import InlineKeyboardButton
+from data.runtime_manager import *
+from handlers.utils import *
+from data.default_categories import default_categories
+from models.category import Category
+
+async def handle_category_settings(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+  user = get_user_by_id(session.user_id)
+  all_categories = user.generated_categories + default_categories
+
+  if session.game_substate is None or data == "e:categories":
+    session.game_substate = CategorySettingsSubstate.MAIN
+  
+  elif game and session.game_substate == CategorySettingsSubstate.MAIN and data == "s:choose_category":
+    game.state = GameState.SETUP
+    session.game_substate = SetupSubstate.CHOOSE_CATEGORY
+    return True
+  
+  elif session.game_substate == CategorySettingsSubstate.MAIN and data == "e:done":
+    return True
+
+# --- CATEGORY SETTINGS ---
+  if session.game_substate == CategorySettingsSubstate.MAIN and data == "e:categories":
+    text = "What do you want to do?"
+    buttons = [
+      [InlineKeyboardButton(text = "Edit Random Categories", callback_data = "e:toggle")],
+      [InlineKeyboardButton(text = "Create Category", callback_data = "e:create")],
+      [InlineKeyboardButton(text = "Delete Category", callback_data = "e:delete")],
+      [InlineKeyboardButton(text = "View Category", callback_data = "e:view")],
+    ]
+    
+    if game:
+      buttons.append([InlineKeyboardButton(text = "Back to category selection", callback_data = f"s:choose_category")])
+    else:
+      buttons.append([InlineKeyboardButton(text = "Done", callback_data = f"e:done")])
+
+    await edit_message(session, text, buttons)
+    return False
+  
+  if session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.DELETE] and data and (data.startswith("e:delete") or data.startswith("e:next_cats:")):
+    
+    session.game_substate = CategorySettingsSubstate.DELETE
+    if data == "e:delete" or data.startswith("e:next_cats:"):
+      categories = user.generated_categories
+      if not categories:
+        await update.callback_query.answer("You have no custom categories to delete.", show_alert=True)
+        session.game_substate = CategorySettingsSubstate.MAIN
+        return False
+      
+      start_idx = 0
+
+      if query.data and query.data.startswith("e:next_cats:"):
+        start_idx = int(query.data.split(':')[2])
+        start_idx = max(0, min(start_idx, len(categories)-1))
+
+      buttons = make_category_buttons(start_idx, user, categories, callback_prefix = "e:delete")
+      buttons.append([InlineKeyboardButton(text = "Back to category settings", callback_data = "e:categories")])
+      text = "Select a category to delete:"
+      await edit_message(session, text, buttons)
+      return False
+
+    elif data and data.startswith("e:delete:"):
+      idx = int(data.split(':')[2])
+      
+      if 0 <= idx < len(user.generated_categories):
+        deleted_cat = user.generated_categories[idx]
+        text = f"Sure you want to delete Category '{deleted_cat.title}'?"
+      else:
+        await update.callback_query.answer("Invalid category", show_alert=False)
+      
+      buttons = [
+        [InlineKeyboardButton(text = "Yes, delete it", callback_data = f"e:delete_confirm:{idx}")],
+        [InlineKeyboardButton(text = "No, keep it", callback_data = f"e:delete")]
+      ]
+
+      await edit_message(session, text, buttons)
+      return False
+    
+    elif data and data.startswith("e:delete_confirm:"):
+      idx = int(data.split(':')[2])      
+      
+      if 0 <= idx < len(user.generated_categories):
+        deleted_cat = user.generated_categories.pop(idx)
+        user.random_categories.remove(deleted_cat) if deleted_cat in user.random_categories else None
+        all_categories = user.generated_categories + default_categories
+        if len(user.random_categories) < 2:
+          user.random_categories = [cat for cat in all_categories]
+
+        text = f"Category '{deleted_cat.title}' deleted!"
+      else:
+        await update.callback_query.answer("Invalid category", show_alert=True)
+        return False
+
+      buttons = [
+        [InlineKeyboardButton(text = "Delete another category", callback_data = "e:delete")],
+        [InlineKeyboardButton(text = "Back to category settings", callback_data = "e:categories")],
+      ]
+      await edit_message(session, text, buttons)
+      return False
+  
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.TOGGLE] and data and (data.startswith("e:toggle") or data.startswith("e:next_cats:")):
+    session.game_substate = CategorySettingsSubstate.TOGGLE
+    start_idx = 0
+    
+    if data.startswith("e:toggle:"):
+      category_idx = int(data.split(':')[2])
+      category = all_categories[category_idx]
+      
+      start_idx = category_idx - category_idx % 5
+
+      if category not in user.random_categories:
+        user.random_categories.append(category)
+      elif category in user.random_categories and len(user.random_categories) > 2:
+        user.random_categories.remove(category)
+      else:
+        await update.callback_query.answer("You must have at least 2 categories selected for random category option to be available.", show_alert=True)
+        return False
+
+    elif data.startswith("e:next_cats:"): 
+      start_idx = int(query.data.split(':')[2])
+      start_idx = max(0, min(start_idx, len(all_categories)-1))
+    
+    text = "Click a button to toggle if that category should be included in random category selection\n\nYou must have at least 2 categories selected for random category option to be available."
+    buttons = make_category_buttons(start_idx, user, all_categories, show_marks = True, callback_prefix = "e:toggle")
+    buttons.append([InlineKeyboardButton(text = "Done", callback_data = "e:categories")])
+
+    await edit_message(session, text, buttons)
+    return False
+  
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.VIEW] and data and (data.startswith("e:view")  or data.startswith("e:next_cats:")):
+    session.game_substate = CategorySettingsSubstate.VIEW
+
+    if data == "e:view" or data.startswith("e:next_cats:"):
+      start_idx = 0
+      if "next_cats" in data:
+        start_idx = int(data.split(':')[2])
+        start_idx = max(0, min(start_idx, len(all_categories)-1))
+      
+      buttons = make_category_buttons(start_idx, user, all_categories, callback_prefix = "e:view")
+      buttons.append([InlineKeyboardButton(text = "Back to category settings", callback_data = "e:categories")])
+      text = "Select a category to view:"
+      await edit_message(session, text, buttons)
+      return False
+    
+    elif data.startswith("e:view:"):
+      category_idx = int(data.split(':')[2])
+      if 0 <= category_idx < len(all_categories):
+        category = all_categories[category_idx]
+        words = "\n".join(category.words)
+        text = f"Category: {category.title}\n\nWords ({len(category.words)}):\n{words}"
+        buttons = [[InlineKeyboardButton(text = "Back to view categories", callback_data = "e:view")]]
+        await edit_message(session, text, buttons)
+        return False
+      else:
+        await update.callback_query.answer("Invalid category", show_alert=True)
+        return False
+
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.CREATE] and data == "e:create":
+    session.game_substate = CategorySettingsSubstate.CREATE
+    text = (
+      "To add a custom category, reply to this message in the following format:\n\n"
+      "Category Title\nWord1\nWord2\nWord3\n...\nWordN\n\n"
+      "Number of words must be at least 13. Words should be unique."
+    )
+    buttons = [[InlineKeyboardButton(text = "Back to category settings", callback_data=f'e:categories')],]
+    await edit_message(session, text, buttons)
+    return False
+  
+  elif session.game_substate == CategorySettingsSubstate.CREATE and update.message and update.message.reply_to_message:
+    lines = update.message.text.splitlines()
+    if len(lines) < 14:
+      await update.message.reply_text("You must provide at least a title and 13 words. remember duplicates gets removed.")
+      return False
+    
+    title = lines[0].capitalize()
+    words = list(dict.fromkeys(w for w in lines[1:] if w.strip())) # Remove duplicates
+    if len(words) < 13:
+      await update.message.reply_text("You must provide at least 13 unique words.")
+      return False
+    
+    new_category = Category(title=title, words=words, owner_id=update.effective_user.id)
+    new_category.generate_id()  # Generate a unique ID for the category
+    user.generated_categories.append(new_category)
+    user.random_categories.append(new_category) 
+
+    text = f"Category '{title}' with {len(words)} words added!\n\nYou can create one more by replying again, or go back to category selection."
+    buttons = [[InlineKeyboardButton(text = "Back to category settings", callback_data=f'e:categories')],]
+    
+    old_message = update.message.reply_to_message if update.message else None
+    await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
+      
+    return False
+
+ 
+def make_category_buttons(start_idx: int, user: User, categories: list[Category], callback_prefix: str = "", show_random = False, show_marks = False):
+  
+  if show_random:
+    buttons = [
+      [InlineKeyboardButton(text = f"{cat.title} (R)" if cat in user.random_categories else cat.title, callback_data = f"{callback_prefix}:{i}")] 
+        for i,cat in enumerate(categories) if start_idx <= i < 5 + start_idx
+    ]
+  elif show_marks:
+    buttons = [
+      [InlineKeyboardButton(text = cat.title + (" ✔" if cat in user.random_categories else " ✘"), callback_data = f"{callback_prefix}:{i}")] 
+        for i,cat in enumerate(categories) if start_idx <= i < 5 + start_idx
+    ]
+  else:
+    buttons = [
+      [InlineKeyboardButton(text = cat.title, callback_data = f"{callback_prefix}:{i}")] 
+        for i,cat in enumerate(categories) if start_idx <= i < 5 + start_idx
+    ]
+
+  nav_buttons = []
+  if start_idx != 0:
+    nav_buttons.append(
+      InlineKeyboardButton(text = "<<", callback_data = f"{callback_prefix[0:2]}next_cats:{start_idx - 5}")
+    )
+  if start_idx + 5 < len(categories):
+    nav_buttons.append(
+      InlineKeyboardButton(text = ">>", callback_data = f"{callback_prefix[0:2]}next_cats:{start_idx + 5}")
+    )
+  buttons.append(nav_buttons)
+
+  return buttons
+
+
+
+
+====================================================================================================
+flows/guess_outsider.py
+====================================================================================================
+
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import GuessOutsiderSubstate
+from telegram import InlineKeyboardButton, Update
+
+async def handle_guess_outsider(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+
+  guesser = game.outsiders[0]
+
+  if data == "g:guess_outsider" and session.game_substate is None:
+    session.game_substate = GuessOutsiderSubstate.CHOOSING
+    set_all_substates(game, GuessOutsiderSubstate.WAITING, exclude_chat_ids = [session.chat_id])
+    await broadcast_message(game = game, mode = "edit", text = f"Waiting for {guesser.name} to guess the other outsider", exclude_chat_ids = [session.chat_id])
+
+    buttons = []
+    for p in game.players:
+      if p != guesser:
+        buttons.append([
+          InlineKeyboardButton(p.name, callback_data=f"g:suspect:{p.id}")
+        ])
+    
+    text = f"{guesser.name}, Who is the other outsider?"
+   
+    await edit_message(session, text, buttons)
+  
+  elif data.startswith("g:suspect:") and session.game_substate == GuessOutsiderSubstate.CHOOSING:
+    set_all_substates(game, GuessOutsiderSubstate.RESULT)
+    suspect_id = int(query.data.split(":")[2])
+    suspect = game.get_player_by_id(suspect_id)
+    result = game.check_suspect(suspect)
+    
+    other_outsider = game.outsiders[1]
+    wait_text = f"{other_outsider.name} will guess the word now."
+
+    def build_text(result, name, wait_text = ""):
+      if result:
+        text = f"{name} guessed that {suspect.name} was the outsider and that was correct!"
+      else:
+        text = f"{name} guessed that {suspect.name} was the outsider and that was wrong!\n{other_outsider.name} was the other outsider."
+
+      return f"{text}\n\n{wait_text}"
+
+    buttons = [[InlineKeyboardButton("Guess Word", callback_data = "g:guess_word:1")]]
+
+    other_outsider_session = get_session_of_chat(other_outsider.session_id)
+
+    await broadcast_message(
+      game = game,
+      mode = "edit",
+      text = build_text(result, guesser.name, wait_text),
+      exclude_chat_ids = [session.chat_id, other_outsider_session.chat_id]
+    )
+    
+    if session.chat_id != other_outsider_session.chat_id:
+      await edit_message(session, build_text(result, "You", wait_text))
+      await edit_message(other_outsider_session, build_text(result, guesser.name), buttons)
+    else:
+      await edit_message(session, build_text(result, "You", wait_text), buttons)
+
+    game.state = GameState.GUESS_WORD
+    set_all_substates(game, None)
+
+
+
+====================================================================================================
+flows/guess_teams.py
+====================================================================================================
+
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import GuessTeamsSubstate
+from telegram import InlineKeyboardButton, Update
+from data.runtime_manager import get_session_of_owner
+
+
+async def handle_guess_teams(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+
+  detective = game.detective
+
+  # --- START FLOW ---
+  if data == "g:guess_teams" and session.game_substate is None:
+    game.sessions_ready = 0
+
+    # initialize guesses (only for detective session)
+    detective.team_guess = {
+      p.id: "A" for p in game.players if p !=   detective
+    }
+
+    session.game_substate = GuessTeamsSubstate.GUESSING
+    buttons = [[InlineKeyboardButton(text = "start", callback_data = "g:start")]]
+    # others just wait
+    set_all_substates(
+      game,
+      GuessTeamsSubstate.WAITING,
+      exclude_chat_ids=[session.chat_id]
+    )
+
+    await broadcast_message(
+      game = game,
+      mode = "edit",
+      text = "The detective will now guess which team each player was in.",
+      exclude_chat_ids = [session.chat_id]
+    )
+    await edit_message(session, f"Now you will guess the teams, {game.detective.name}", buttons)
+    return False
+
+  # --- TOGGLE PLAYER TEAM ---
+
+  elif data and data.startswith("g:toggle_") and session.game_substate == GuessTeamsSubstate.GUESSING:
+    player_id = int(data.replace("g:toggle_", ""))
+
+    if player_id in detective.team_guess:
+      current = detective.team_guess[player_id]
+      detective.team_guess[player_id] = "B" if current == "A" else "A"
+
+  # --- CONFIRM GUESS ---
+
+  elif data == "g:confirm_guess" and session.game_substate == GuessTeamsSubstate.GUESSING:
+    detective.sus_alphas = []
+    detective.sus_betas = []
+
+    for p in game.players:
+      if p == detective:
+        continue
+
+      if detective.team_guess[p.id] == "A":
+        detective.sus_alphas.append(p)
+      else:
+        detective.sus_betas.append(p)
+
+    set_all_substates(game, GuessTeamsSubstate.RESULT)
+
+  # --- MOVE TO NEXT PHASE ---
+
+  elif data == "g:vote_words" and session.game_substate == GuessTeamsSubstate.RESULT:
+    game.state = GameState.VOTE_WORDS
+    set_all_substates(game, None)
+    return True
+
+  # --- RESULT SCREEN ---
+
+  if session.game_substate == GuessTeamsSubstate.RESULT:
+    result = game.check_detection()
+
+    text = f"Detective got {result}\n"
+    text += "Alpha team: " + ", ".join([p.name for p in game.alphas]) + "\n"
+    text += "Beta team: " + ", ".join([p.name for p in game.betas]) + "\n"
+
+    owner_session = get_session_of_owner(game=game)
+
+    # others just see result
+    await broadcast_message(
+      game = game,
+      mode = "edit",
+      text = text,
+      exclude_chat_ids=[owner_session.chat_id]
+    )
+
+    # detective gets button
+    buttons = [[InlineKeyboardButton("Vote Words", callback_data="g:vote_words")]]
+    await edit_message(owner_session, text, buttons)
+
+    return False
+
+  # --- RENDER GUESSING SCREEN (ONLY DETECTIVE) ---
+
+  if session.game_substate == GuessTeamsSubstate.GUESSING:
+    text = "Assign teams:\n\n"
+    buttons = []
+
+    for p in game.players:
+      if p == detective:
+        continue
+
+      team = detective.team_guess[p.id]
+
+      buttons.append([
+        InlineKeyboardButton(
+          f"{p.name} → {team} ?",
+          callback_data=f"g:toggle_{p.id}"
+        )
+      ])
+
+    buttons.append([
+      InlineKeyboardButton("Confirm", callback_data="g:confirm_guess")
+    ])
+
+    await edit_message(session, text, buttons)
+
+    return False
+
+  return False
+
+
+
+====================================================================================================
+flows/guess_word.py
+====================================================================================================
+
+from models.game import Game
+from models.session import Session
+from flows.states import GameState
+from flows.substates import GuessWordSubstate
+from telegram import InlineKeyboardButton, Update
+from flows.msg_utils import *
+
+async def handle_guess_word(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+
+  if data and data.startswith("g:guess_word:") and session.game_substate is None:      # Only the guesser interacts with this phase (session is set in reveal phase)
+    session.game_substate = GuessWordSubstate.CHOOSING
+    
+    parts = data.split(":")
+    out_idx = int(parts[2])
+    game.word_guesser = game.outsiders[out_idx]
+
+    set_all_substates(game, GuessWordSubstate.WAITING, exclude_chat_ids = [session.chat_id])
+    await broadcast_message(game = game, mode = "edit", text = f"{game.word_guesser.name} is guessing a word...", exclude_chat_ids = [session.chat_id])
+
+
+    buttons = []
+    for i,choice in enumerate(game.choices):
+      buttons.append([InlineKeyboardButton(choice, callback_data=f"g:choice:{i}")])
+    
+    text=f"{game.word_guesser.name}, Try to guess the word"
+
+    await edit_message(session, text, buttons)
+  
+  if session.game_substate == GuessWordSubstate.CHOOSING and data and data.startswith("g:choice:"):
+    set_all_substates(game, GuessWordSubstate.RESULT)
+
+    word_idx = int(query.data.split(":")[2])
+    word = game.choices[word_idx]
+    result = game.check_word(word)
+
+    result_message = f"{word} is Correct!" if result else f'{word} is Wrong! The word was "{game.word}"'
+    text = f"{result_message}\n\nNow Let's see results"
+    buttons = [[InlineKeyboardButton("See Results", callback_data = "g:round_results")]]
+    
+    owner_session = get_session_of_owner(game=game)
+    
+    await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [owner_session.chat_id])
+    await edit_message(owner_session, text, buttons)
+    
+    game.state = GameState.RESULTS
+    set_all_substates(game, None)
+    
+    return False
+
+
+
+
+====================================================================================================
+flows/inform.py
+====================================================================================================
+
+from data.runtime_manager import get_session_of_owner
+from models.game import Game
+from models.session import Session
+from flows.states import GameState
+from flows.substates import InformSubstate
+from telegram import InlineKeyboardButton, Update
+from flows.msg_utils import *
+
+
+async def handle_informing(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+  
+  # ---- STATE TRANSITIONS ----
+
+  if data == "g:start_round" and session.game_substate is None: # Players start playing here
+    game.sessions_ready = 0
+    reset_turn_indices(game)
+    text = game.start_round()
+    buttons = [[InlineKeyboardButton("Got it!", callback_data="g:start_informing")]]
+
+    set_all_substates(game, InformSubstate.ROUND_INFO)
+    await broadcast_message(game = game, mode = "edit", text = text, buttons = buttons)
+    return False
+
+  elif data == "g:start_informing" and session.game_substate == InformSubstate.ROUND_INFO:
+    session.game_substate = InformSubstate.HIDE
+
+  elif data == "g:next" and session.game_substate in [InformSubstate.HIDE, InformSubstate.SHOW]:
+    session.game_substate = InformSubstate.HIDE
+    session.turn_index += 1
+
+  elif data == "g:back" and session.game_substate == InformSubstate.HIDE and session.turn_index > 0:
+    session.turn_index -= 1
+
+  elif  data == "g:show" and session.game_substate == InformSubstate.HIDE:
+    player = session.players[session.turn_index]
+    player.saw_info += 1
+    session.game_substate = InformSubstate.SHOW
+
+    text = player.info()
+    parse_mode = "HTML"
+    buttons = [[InlineKeyboardButton("Got it!", callback_data="g:next")]]
+    
+    await edit_message(session, text, buttons, parse_mode)
+    return False
+  
+  elif data == "g:start_question" and session.game_substate == InformSubstate.END:
+    session.turn_index = 0
+    game.state = GameState.QUESTION
+    set_all_substates(game, None)
+    return True
+
+  # ---- END CONDITION ----
+  if session.turn_index >= len(session.players) and session.game_substate != InformSubstate.END:
+    session.game_substate = InformSubstate.END
+    game.sessions_ready += 1
+    
+    extra_informs = "\n".join(
+      f"{p.name} has seen their info {p.saw_info} times"
+      for p in session.players if p.saw_info > 1
+    )
+
+    ready = False
+    if game.sessions_ready >= len(game.chat_ids):
+      ready = True
+
+    waiting_text = ""
+    if not ready:
+      waiting_text = "Waiting for other players to finish..."
+    
+    text = ("All players informed!" + "\n\n" + extra_informs).strip()
+    text += ("\n\n" + waiting_text)
+    text.strip()
+
+
+    if ready:
+      text = "All players are ready!"
+      buttons = [[InlineKeyboardButton("Start Questioning", callback_data="g:start_question")]]
+      owner_session = get_session_of_owner(game=game)
+      extra_informs = "\n".join(
+        f"{p.name} has seen their info {p.saw_info} times"
+        for p in owner_session.players if p.saw_info > 1
+      )
+      new_text = (extra_informs + "\n\n" + "All players ready").strip()
+      await edit_message(owner_session, new_text, buttons)
+      if session.user_id == owner_session.user_id:
+        return False
+    
+    await edit_message(session, text)
+    return False
+
+  # ---- RENDER CURRENT STEP ----
+
+  else:
+    player = session.players[session.turn_index]
+    session.game_substate = InformSubstate.HIDE
+    
+    buttons = [
+      [InlineKeyboardButton("That's me!", callback_data = "g:show")]
+    ]
+
+    if session.turn_index > 0:
+      buttons.append([InlineKeyboardButton("Back", callback_data = "g:back")])
+
+    if player.saw_info > 0:
+      buttons.append([InlineKeyboardButton("Skip", callback_data = "g:next")])
+
+    text=f"Give phone to {player.name}"
+    
+    await edit_message(session, text, buttons)
+
+    return False
+
+
+
+====================================================================================================
+flows/msg_utils.py
+====================================================================================================
+
+import asyncio
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup,Message
+from data.runtime_manager import *
+from models.session import Session
+from models.game import Game
+from flows.substates import AnySubstate
+
+async def edit_message(session: Session, text: str, buttons: list[list[InlineKeyboardButton]] = None, parse_mode: str = None):
+  raw_markup = []
+  if buttons:
+    for r in buttons:
+      row = []
+      for btn in r:
+        row.append((btn.text, btn.callback_data))
+      raw_markup.append(row)
+  
+  if session.text == text and session.raw_markup == raw_markup:
+    return False
+  
+  markup = InlineKeyboardMarkup(buttons) if buttons else None
+  
+  try:
+    await session.bot.edit_message_text(chat_id = session.chat_id, message_id = session.message_id, text = text, reply_markup = markup, parse_mode = parse_mode)
+    session.set_ui(text = text, raw_markup = raw_markup)
+    return True
+  except Exception as e:
+    await asyncio.sleep(0.5)  # Wait a bit and try again
+    await session.bot.edit_message_text(chat_id = session.chat_id, message_id = session.message_id, text = text, reply_markup = markup, parse_mode = parse_mode)
+    session.set_ui(text = text, raw_markup = raw_markup)
+    return True
+  
+      
+async def send_message(session: Session, text: str, buttons: list[list[InlineKeyboardButton]] = None, old_message: Message = None, delete_old_message: bool = False, parse_mode: str = None):
+  if old_message and delete_old_message:
+    try:
+      await old_message.delete()
+    except Exception as e:
+      await asyncio.sleep(0.5)
+      await old_message.delete()
+  
+  markup = InlineKeyboardMarkup(buttons) if buttons else None
+  
+  try:
+    sent_msg = await session.bot.send_message(chat_id = session.chat_id, text = text, reply_markup = markup, parse_mode = parse_mode)
+    session.message_id = sent_msg.message_id
+    session.set_ui(text = text, buttons = buttons)
+    return True
+  except Exception as e:
+    await asyncio.sleep(0.5)
+    sent_msg = await session.bot.send_message(chat_id = session.chat_id, text = text, reply_markup = markup, parse_mode = parse_mode)
+    session.message_id = sent_msg.message_id
+    session.set_ui(text = text, buttons = buttons)
+    return True
+
+
+async def broadcast_message(game: Game, mode: str, text: str, buttons: list[list[InlineKeyboardButton]] = None, parse_mode: str = None, exclude_chat_ids: list[int] = [], only_with_substate: AnySubstate = None):
+  
+  if mode not in ["edit", "send"]:
+    return
+  
+  tasks = []
+  sessions = get_all_sessions(game = game, excluded = exclude_chat_ids)
+  
+  if only_with_substate:
+    valid_sessions = []
+    for session in sessions:
+      if only_with_substate == session.game_substate:
+        valid_sessions.append(session)
+    sessions = valid_sessions
+  
+  for session in sessions:
+    if mode == "edit":
+      tasks.append(edit_message(session = session, text = text, buttons = buttons, parse_mode= parse_mode))
+    elif mode == "send":
+      tasks.append(send_message(session = session, text = text, buttons = buttons, parse_mode = parse_mode))
+
+  if tasks:
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+
+def set_all_substates(game: Game, substate, exclude_chat_ids: list[int] = []):
+  sessions: list[Session] = get_all_sessions(game = game, excluded = exclude_chat_ids) 
+  
+  for session in sessions:
+    session.game_substate = substate
+
+
+def reset_turn_indices(game, exclude_chat_ids: list[int] = []):
+  sessions = get_all_sessions(game = game, excluded = exclude_chat_ids)
+
+  for session in sessions:
+    session.turn_index = 0
+
+def empty_slots(game: Game):
+  sessions_with_no_players = 0
+  for s in get_all_sessions(game = game):
+    if len(s.players) == 0:
+      sessions_with_no_players += 1
+  empty_slots = game.intial_players_count - len(game.players) - sessions_with_no_players + 1  
+  # the +1 because i will show that to an empty session always so the session may use the seat preserved to it
+  return empty_slots
+
+
+
+====================================================================================================
+flows/question.py
+====================================================================================================
+
+from data.modes import GameMode
+from flows.states import GameState
+from flows.substates import QuestionSubstate
+from telegram import InlineKeyboardButton, Update
+from flows.msg_utils import *
+
+async def handle_questioning(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data
+
+  # --- STATE TRANSITIONS ---
+
+  if data == 'g:start_question':
+    game.turn_index = 0
+    set_all_substates(game, QuestionSubstate.ASK)
+  
+  elif data == 'g:next':
+    game.turn_index += 1
+
+  elif data == 'g:back':
+    game.turn_index -= 1
+    game.turn_index = max(0, game.turn_index)
+
+  elif data == "g:start_vote":
+    game.state = GameState.VOTE
+    set_all_substates(game, None)
+    return True
+  
+  elif data == "g:extra_questions":
+    game.pair_players()
+    game.turn_index = 0
+
+
+  # --- END CONDITION ---
+
+  if game.turn_index >= len(game.pairs):
+    set_all_substates(game, QuestionSubstate.END)
+    
+    if game.mode == GameMode.TEAMS:
+      text = "Now you are ready to vote each other."
+    else:
+      text = "Now you are ready to vote the outsider."
+    buttons = [
+      [InlineKeyboardButton("Start Voting", callback_data = "g:start_vote")],
+      [InlineKeyboardButton("Extra Questions", callback_data = "g:extra_questions")], 
+      [InlineKeyboardButton("Back", callback_data = "g:back")],
+    ]
+    
+    await edit_message(session, text, buttons)
+    return False
+  
+
+  # --- RENDER CURRENT STEP ---
+
+  pair = game.pairs[game.turn_index]
+  message = f'{pair[0].name} ask {pair[1].name}'
+
+  buttons = [
+    [InlineKeyboardButton("Next", callback_data = 'g:next')],
+  ]
+
+  if game.turn_index > 0:
+    buttons.append([InlineKeyboardButton("Back", callback_data="g:back")])
+
+  text = message
+
+  await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [session.chat_id])
+  await edit_message(session, text, buttons)
+
+  return False
+
+
+
+====================================================================================================
+flows/results.py
+====================================================================================================
+
+from flows.msg_utils import *
+from handlers.utils import end_game
+from flows.states import GameState
+from flows.substates import ResultsSubstate
+from telegram import InlineKeyboardButton, Update
+
+async def handle_results(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+  refresh_all = False
+
+  if data and data.startswith("g:round_results"):
+    if session.game_substate is None:
+      refresh_all = True
+      set_all_substates(game, ResultsSubstate.ROUND_RESULTS)
+  
+    session.game_substate = ResultsSubstate.ROUND_RESULTS
+  
+  elif data == "g:report" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
+    session.game_substate = ResultsSubstate.ROUND_REPORT
+  
+  elif data == "g:end_results" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
+    session.game_substate = ResultsSubstate.FINAL_RESULTS
+  
+  elif data == "g:edit_score" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
+    session.game_substate = ResultsSubstate.EDIT_SCORE
+
+  elif data == "g:start_round" and session.game_substate in [ResultsSubstate.FINAL_RESULTS, ResultsSubstate.ROUND_RESULTS]:
+    game.state = GameState.INFORM
+    set_all_substates(game, None)
+    return True
+    
+
+  if session.game_substate == ResultsSubstate.ROUND_RESULTS and data and data.startswith("g:round_results"):
+    text = ""
+    if len(data.split(":")) > 2:
+      text = game.round_result(rewrite = True)
+      refresh_all = True
+    else:
+      text = game.round_result(rewrite = False)
+    
+    buttons = [[InlineKeyboardButton("Round Report", callback_data="g:report")]]
+    if session.user_id == game.owner_id:
+      buttons.append([InlineKeyboardButton("Edit Score", callback_data = "g:edit_score")])
+      if game.num_rounds > game.round_number:
+        buttons.append([InlineKeyboardButton("Next Round", callback_data = "g:start_round")])
+      else:
+        buttons.append([InlineKeyboardButton("Extra Round", callback_data = "g:start_round")])
+      buttons.append([InlineKeyboardButton("End Game", callback_data = "g:end_results")])
+    
+    await edit_message(session, text, buttons)
+    
+    if refresh_all:
+      guest_buttons = [[InlineKeyboardButton(text = "Round Report", callback_data = "g:report")]]
+      await broadcast_message(game = game, mode = "edit", text = text, buttons = guest_buttons, exclude_chat_ids = [session.chat_id])
+
+  elif session.game_substate == ResultsSubstate.ROUND_REPORT and data == "g:report":
+    text = game.round_report
+    buttons = [[InlineKeyboardButton("Back", callback_data = 'g:round_results')]]
+    
+    await edit_message(session, text, buttons)
+
+  elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data in ["g:end_it", "g:end_results"]:
+    buttons = []
+    text = game.final_result()
+    if data == "g:end_it":
+      end_game(game)
+    else:
+      buttons = [
+        [InlineKeyboardButton("End it", callback_data = "g:end_it")],
+        [InlineKeyboardButton("Get back", callback_data = "g:round_results")]
+      ]
+      text += "\nSure you want to end?"
+    
+
+    await edit_message(session, text, buttons)
+
+
+  elif session.game_substate == ResultsSubstate.EDIT_SCORE and data and data.startswith("g:edit_score"):
+    parts = data.split(":")
+    if len(parts) < 3:  
+      text = "Tap the player you want to edit their score"
+      buttons = [[InlineKeyboardButton(player.name, callback_data = f"g:edit_score:{player.id}")] for player in game.players]
+      buttons.append([InlineKeyboardButton("Done", callback_data = "g:round_results:rewrite")])
+    else:
+      player_id = int(parts[2])
+      edit = 0
+      player = game.get_player_by_id(player_id)
+      
+      if len(parts) == 4:
+        edit = int(parts[3])
+        player.score += edit
+        game.round_report += f"\nScore of {player.name} updated by owner from {player.score - edit} to {player.score}."
+
+      text = f"Current Score of {player.name}: {player.score}"
+      buttons = [
+        [InlineKeyboardButton("+2", callback_data = f"g:edit_score:{player.id}:+2"), InlineKeyboardButton("-2", callback_data = f"g:edit_score:{player.id}:-2")],
+        [InlineKeyboardButton("+5", callback_data = f"g:edit_score:{player.id}:+5"), InlineKeyboardButton("-5", callback_data = f"g:edit_score:{player.id}:-5")],
+        [InlineKeyboardButton("Another Player", callback_data = "g:edit_score")],
+        [InlineKeyboardButton("Done", callback_data = "g:round_results:rewrite")],
+      ]
+    
+    await edit_message(session, text, buttons)
+
+  return False
+
+
+
+====================================================================================================
+flows/reveal.py
+====================================================================================================
+
+from models.game import Game
+from models.session import Session
+from data.modes import GameMode
+from flows.states import GameState
+from flows.substates import RevealSubstate
+from telegram import InlineKeyboardButton, Update
+from flows.msg_utils import *
+
+async def handle_reveal(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+
+  if data == "g:reveal" and session.game_substate is None:
+    game.sessions_ready = 0
+    set_all_substates(game, RevealSubstate.SHOW_RESULT)
+  
+  if session.game_substate == RevealSubstate.CHOICE:      # Branching
+    set_all_substates(game, None)
+    if data == "g:guess_outsider":
+      game.state = GameState.GUESS_OUTSIDER
+      return True
+    elif data and data.startswith("g:guess_word:"):
+      game.state = GameState.GUESS_WORD
+      return True
+    elif data == "g:vote_words":
+      game.state = GameState.VOTE_WORDS
+      return True
+    elif data == "g:guess_teams":
+      game.state = GameState.GUESS_TEAMS
+      return True
+
+    return False
+
+
+  if session.game_substate == RevealSubstate.SHOW_RESULT:
+
+    outsiders = game.outsiders
+    
+    if len(outsiders) == 1:
+      text = f"{outsiders[0].name} was the outsider."
+      buttons = [
+        [InlineKeyboardButton("Guess Word", callback_data ="g:guess_word:0")]
+      ]
+      outsider_session = get_session_of_chat(outsiders[0].session_id)
+      await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [outsider_session.chat_id])
+      await edit_message(outsider_session, text, buttons)
+
+      set_all_substates(game, RevealSubstate.CHOICE)
+    
+    elif len(outsiders) == 2:
+      reveal_text = f"{outsiders[0].name} was the most voted outsider\n"
+      choices_text = reveal_text + (
+        f"{outsiders[0].name}, do you want to guess the word for 10 points or\n"
+        "guess the other outsider for 20 points but -10 if wrong?"
+      )
+
+      buttons = [
+        [InlineKeyboardButton("Guess Word", callback_data = "g:guess_word:0")],
+        [InlineKeyboardButton("Guess Outsider", callback_data= "g:guess_outsider")]
+      ]
+
+      outsider_session = get_session_of_chat(outsiders[0].session_id)
+      await broadcast_message(game = game, mode = "edit", text = reveal_text, exclude_chat_ids = [outsider_session.chat_id])
+      await edit_message(outsider_session, choices_text, buttons)
+      set_all_substates(game, RevealSubstate.CHOICE)
+      return False
+
+    elif game.mode == GameMode.TEAMS and game.detective:
+      text = f"Detective was {game.detective.name}!\n"
+      buttons = [
+        [InlineKeyboardButton("Guess Team Members", callback_data = "g:guess_teams")]
+      ]
+
+      detective_session = get_session_of_chat(game.detective.session_id)
+      await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [detective_session.chat_id])
+      await edit_message(detective_session, text, buttons)
+      set_all_substates(game, RevealSubstate.CHOICE)
+      return False
+      
+    elif game.mode == GameMode.TEAMS and not game.detective:
+      text = f"Team Alpha was {', '.join([p.name for p in game.alphas])}\nTeam Beta was {', '.join([p.name for p in game.betas])}"
+      buttons = [
+        [InlineKeyboardButton("Vote Words", callback_data="g:vote_words")]
+      ]
+
+      owner_session = get_session_of_owner(game=game)
+      await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [owner_session.chat_id])
+      await edit_message(owner_session, text, buttons)
+      set_all_substates(game, RevealSubstate.CHOICE)
+      return False
+
+    return False
+  
+
+
+
+====================================================================================================
+flows/router.py
+====================================================================================================
+
+from flows.category_settings import handle_category_settings
+from flows.substates import AnyCategorySettingsSubstate
+from handlers.utils import *
+from flows.msg_utils import *
+from telegram import Update
+from models.game import Game
+from models.session import Session
+from flows.states import GameState
+from telegram.ext import ContextTypes
+from flows.setup import handle_setup
+from flows.vote import handle_voting
+from flows.reveal import handle_reveal
+from flows.results import handle_results
+from flows.inform import handle_informing
+from flows.question import handle_questioning
+from flows.vote_words import handle_vote_words
+from flows.guess_word import handle_guess_word
+from data.runtime_manager import terminate_game
+from flows.guess_teams import handle_guess_teams
+from flows.guess_outsider import handle_guess_outsider
+
+async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Game = None, session:Session = None):
+  state_changed = False
+  query = update.callback_query
+  data = query.data if query else None
+
+  # --- init game if not set ---
+  if data == "s:setup_game":
+    user, game = get_user_game(update) #Ensures user exists
+    if game:
+      terminate_game(game)
+
+    chat_id = update.effective_chat.id
+    message_id = update.effective_message.message_id
+    game = create_game(user_id = user.id, username = user.username)
+    session = set_session(chat_id = chat_id, message_id = message_id, game_id = game.id, user_id = user.id, bot = context.bot)
+    game.state = GameState.SETUP
+
+  elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate):
+    
+    if data == "e:done":
+      buttons = [
+        [InlineKeyboardButton("Categories", callback_data = "e:categories")],
+        [InlineKeyboardButton("Done", callback_data = f"e:done")]
+      ]
+
+      if session.game_substate is None:
+        await edit_message(session, text = "Settings Saved!")
+        terminate_session(session = session)
+    
+      else:
+        await edit_message(session, text = "Choose what you want to edit", buttons = buttons)
+        session.game_substate = None
+    
+    elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":
+      state_changed = await handle_category_settings(update, game, session)
+
+
+  # --- route to correct flow ---
+  if game:
+    if game.state == GameState.SETUP:
+      state_changed = await handle_setup(update, game, session)
+
+    elif game.state == GameState.CATEGORY_SETTINGS:
+      state_changed = await handle_category_settings(update, game, session)
+
+    elif game.state == GameState.INFORM:
+      state_changed = await handle_informing(update, game, session)
+
+    elif game.state == GameState.QUESTION:
+      state_changed = await handle_questioning(update, game, session)
+
+    elif game.state == GameState.VOTE:
+      state_changed = await handle_voting(update, game, session)
+
+    elif game.state == GameState.REVEAL:
+      state_changed = await handle_reveal(update, game, session)
+
+    elif game.state == GameState.GUESS_WORD:
+      state_changed = await handle_guess_word(update, game, session)
+
+    elif game.state == GameState.GUESS_OUTSIDER:
+      state_changed = await handle_guess_outsider(update, game, session)
+
+    elif game.state == GameState.VOTE_WORDS:
+      state_changed = await handle_vote_words(update, game, session)
+
+    elif game.state == GameState.GUESS_TEAMS:
+      state_changed = await handle_guess_teams(update, game, session)
+
+    elif game.state == GameState.RESULTS:
+      state_changed = await handle_results(update, game, session)
+
+  # --- reroute on state change ---
+  if state_changed:
+    await route_game(update, context, game, session)
+
+
+
+====================================================================================================
+flows/setup.py
+====================================================================================================
+
+from flows.category_settings import make_category_buttons
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import SetupSubstate
+from telegram import CallbackQuery, InlineKeyboardButton
+from data.runtime_manager import *
+from handlers.utils import *
+from data.default_categories import default_categories
+from data.modes import GameMode
+from config import BOT_USERNAME
+from models.category import Category
+
+
+async def handle_setup(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+
+  if session.game_substate is None and query and query.data:
+    session.game_substate = SetupSubstate.PLAYERS_COUNT
+    
+    text = "Choose Number of players"
+    buttons = [
+      [
+        InlineKeyboardButton(text=f"{i}", callback_data=f"s:players:{i}"),
+        InlineKeyboardButton(text=f"{i+1}", callback_data=f"s:players:{i+1}")
+      ] for i in range(3,10,2) 
+    ]
+
+    await edit_message(session, text, buttons)
+    return False
+
+  if (session.game_substate == SetupSubstate.PLAYERS_COUNT and query.data.startswith("s:players:")) or (session.game_substate == SetupSubstate.GAME_TYPE and query.data.startswith("s:game_type:select")):
+
+    if session.game_substate == SetupSubstate.PLAYERS_COUNT:
+      players_count = int(query.data.split(":")[2])
+      game.intial_players_count = players_count
+
+    text = "How will you play?"
+    buttons = [
+      [InlineKeyboardButton(text="On the same phone", callback_data = "s:game_type:single")],
+      [InlineKeyboardButton(text="On multiple phones", callback_data = "s:game_type:multiple")],
+      [InlineKeyboardButton(text="How to play with multiple phones?", callback_data="s:game_type:help")]
+    ]
+    session.game_substate = SetupSubstate.GAME_TYPE
+    await edit_message(session, text, buttons)
+    return False
+
+  # --- initialize setup ---
+  if session.game_substate == SetupSubstate.GAME_TYPE and query.data.startswith("s:game_type:"):
+    game_type = query.data.split(":")[2]
+    if game_type == "help": 
+      text = (
+        "How to play on multiple phones?\n\n"
+        "There are two main ways to play:\n\n"
+        "• Same phone\n"
+        "All players share one device and take turns.\n\n"
+        "• Each player uses their own phone\n"
+        "Everyone joins the same game using a code and plays on their own device.\n\n"
+        "•• You can also mix both:\n"
+        "For example, 5 players can play using 3 phones—some players share a device, others use their own.\n\n"
+        "More phones = Less waiting time"
+      )
+      buttons = [[InlineKeyboardButton(text="Got it!", callback_data = "s:game_type:select")]]
+      await edit_message(session, text, buttons)
+      return False
+    else:
+      game.type = game_type
+      session.game_substate = SetupSubstate.INPUT_NAMES
+    
+    if game.type == "single":
+      text = (
+        "Input players' names by replying to this message\n"
+        "Names should be separated by spaces or each on a line.\n"
+        f"Player count must be {game.intial_players_count}."
+      )    
+      await edit_message(session, text)
+    elif game.type == "multiple":
+      slots = empty_slots(game)
+      text = (
+        "Share this game code with your friends so they can join:\n"
+        f"{game.id}\n\n"
+        "Or forawrd the next message to their chat\n\n"
+        "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+        "Names should be separated by spaces or each on a line.\n"
+        f"game has room for {slots} players"
+      )
+      await edit_message(session, text)
+
+      user = get_user_by_id(session.user_id)
+      await session.bot.send_message(
+        chat_id = session.chat_id,
+        text = f"Join an out of the loop game by: {user.username}!",
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join", url = f"https://t.me/{BOT_USERNAME}?start={game.id}")]])
+      )
+
+    return False
+
+  # --- INPUT_NAMES: expecting a text reply ---
+  if session.game_substate == SetupSubstate.INPUT_NAMES and update.message.reply_to_message:   
+    # Players who join the game only work with the input names setup step
+    
+    player_names = update.message.text.split()
+    slots = empty_slots(game)
+
+    if game.type == "single" and not (len(player_names) == game.intial_players_count):
+      await update.message.reply_text(f"You must have {game.intial_players_count} players.")
+      return False
+    elif game.type == "multiple" and not (1 <= len(player_names) <= slots):
+      await update.message.reply_text(f"You must provide at least 1 player name and at most {slots}.")
+      return False
+    
+    session.prepare_players(player_names, game)    # Create player objects and add to session and game
+    session.game_substate = SetupSubstate.WAITING
+
+    if game.type == "multiple":
+      text = (
+        f"Players names set: {', '.join([p.name for p in session.players])}\n"
+        f"Now waiting for other players to join using the game code...\n\n"
+        f"Game Code is {game.id}\n"
+        f"Players joined: {len(game.players)}/{game.intial_players_count}"
+      )
+
+      buttons = None 
+      old_message = update.message.reply_to_message if update.message else None
+      await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
+      
+      if (len(game.players) == game.intial_players_count):
+        buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
+        owner_session = get_session_of_owner(game = game)
+        await edit_message(owner_session, "All players joined!", buttons)
+        # Removing sessions that didn't add players when player count is full
+        for cid in game.chat_ids: 
+          session = get_session_of_chat(cid)
+          if session.game_substate == SetupSubstate.INPUT_NAMES:
+            terminate_session(session)
+
+      else:
+        await broadcast_message(
+          game = game, mode = "edit",
+          text = (
+            f"Now waiting for other players to join using the game code...\n\n"
+            f"Game Code is {game.id}\n\n"
+            f"Players joined: {len(game.players)}/{game.intial_players_count}"
+          ),
+          exclude_chat_ids = [session.chat_id],
+          only_with_substate = SetupSubstate.WAITING,
+          )
+        slots = empty_slots(game)
+        await broadcast_message(
+          game = game, mode = "edit",
+          text = (
+            "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+            "Names should be separated by spaces or each on a line.\n"
+            f"game has room for {slots} players"
+          ),
+          exclude_chat_ids = [session.chat_id],
+          only_with_substate = SetupSubstate.INPUT_NAMES,
+          )
+
+      return False
+    
+    elif game.type == "single":
+      text = f"Players names set: {', '.join([p.name for p in session.players])}"
+      buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
+      
+      
+      old_message = update.message.reply_to_message if update.message else None
+      await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
+      return False
+  
+  if session.game_substate == SetupSubstate.WAITING and query and data == "s:all_joined": #Only game owner reaches this
+    global_text = "All players joined\nWaiting for the game creator to finish setup."
+    await broadcast_message(game = game, mode = "edit", text = global_text, exclude_chat_ids = [session.chat_id])
+    
+    game.num_rounds = len(game.players)   # Intialize the rounds count
+
+    text = (
+      "Now adjust number of rounds as you wish (1 to 25).\n"
+      f"Current number of rounds: {game.num_rounds}"
+    )
+
+    buttons = [
+      [
+        InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
+        InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
+      ],
+      [
+        InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
+        InlineKeyboardButton("-2", callback_data='s:rounds:-2')
+      ],
+      [
+        InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
+        InlineKeyboardButton("-5", callback_data='s:rounds:-5')
+      ],
+      [
+        InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
+        InlineKeyboardButton("-10", callback_data='s:rounds:-10')
+      ],
+      [InlineKeyboardButton("Perfect!", callback_data='s:rounds:done')]
+    ]
+
+    await edit_message(session, text, buttons)
+    session.game_substate = SetupSubstate.CHOOSE_ROUNDS
+
+    return False
+
+
+  # --- CHOOSE_ROUNDS ---
+  if session.game_substate == SetupSubstate.CHOOSE_ROUNDS and query.data.startswith("s:rounds:") and query.data != "s:rounds:done":
+    rounds_count = game.num_rounds
+    rounds_count += int(query.data.split(':')[2])
+    rounds_count = max(min(rounds_count, 25), 1)
+    
+    if game.num_rounds == rounds_count: # Nothing to update
+      return False
+    
+    game.num_rounds = rounds_count
+
+    text = (
+      f"Current number of rounds: {game.num_rounds}"
+    )
+
+    buttons = [
+      [
+        InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
+        InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
+      ],
+      [
+        InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
+        InlineKeyboardButton("-2", callback_data='s:rounds:-2')
+      ],
+      [
+        InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
+        InlineKeyboardButton("-5", callback_data='s:rounds:-5')
+      ],
+      [
+        InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
+        InlineKeyboardButton("-10", callback_data='s:rounds:-10')
+      ],
+    ]
+    
+    new_buttons = []
+
+    for row in buttons:
+      new_row = []
+      for btn in row:
+        if "+" in btn.text and rounds_count == 25:
+          continue
+        if "-" in btn.text and rounds_count == 1:
+          continue
+        new_row.append(btn)
+      if new_row:
+        new_buttons.append(new_row)
+
+    new_buttons.append([InlineKeyboardButton("Perfect!", callback_data='s:rounds:done')])
+    
+    await edit_message(session, text, new_buttons)
+    return False
+
+  # --- CHOOSE CATEGORY ---
+  if (session.game_substate == SetupSubstate.CHOOSE_ROUNDS and data == ("s:rounds:done")) or session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data and (data == "s:choose_category" or data.startswith("s:next_cats:")):
+
+    user = get_user_by_id(update.effective_user.id)
+    game.all_categories = user.generated_categories + default_categories 
+    text = f"Number of rounds set: {game.num_rounds}\n\nNow choose words category:"
+    
+    start_idx = 0
+
+    if query.data and query.data.startswith("s:next_cats:"):
+      start_idx = int(query.data.split(':')[2])
+      start_idx = max(0, min(start_idx, len(game.all_categories)-1))
+
+    buttons = make_category_buttons(start_idx, user, game.all_categories, callback_prefix = "s:cat", show_random = True)
+    buttons.append([InlineKeyboardButton(text = "🎲 Random", callback_data='s:cat:random')])
+    buttons.append([InlineKeyboardButton(text = "⚙️ Category Settings", callback_data='e:categories')])
+
+    
+    await edit_message(session, text, buttons)
+    session.game_substate = SetupSubstate.CHOOSE_CATEGORY
+    return False
+
+  # --- CATEGORY SETTINGS ---
+  if session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data == "e:categories":
+    game.state = GameState.CATEGORY_SETTINGS
+    session.game_substate = None
+    return True
+    
+
+  # --- CHOOSE_CATEGORY ---
+  if (session.game_substate == SetupSubstate.CHOOSE_CATEGORY and query.data.startswith("s:cat:")) or (session.game_substate == SetupSubstate.EDIT_RANDOM_MODE and query.data.startswith("s:choose_mode")):
+    
+    user = get_user_by_id(update.effective_user.id)
+
+    # If coming from edit_random_mode, don't update category, just go to mode selection
+    category_info = ""
+    if query.data.startswith("s:cat:"):
+      category_idx = query.data.split(':')[2]
+      if category_idx != "random":
+        category = game.all_categories[int(category_idx)]
+      else:
+        game.random_category_options = user.random_categories
+        category = None
+
+      game.category = category
+      title = "Random" if category is None else category.title
+      category_info = f"Words category set: {title}\n\n"
+
+    # Mode selection
+    text = f"{category_info}Now choose game mode:"
+    buttons = [
+      [InlineKeyboardButton(
+        text = mode.label + (f" ({mode.min_players}{" R" if mode in user.random_modes else ""})"),
+        callback_data=f's:mode:{mode.value}')
+      ] for mode in GameMode if mode != GameMode.RANDOM
+    ]
+    buttons.append([InlineKeyboardButton(text = f"🎲 Random ({user.least_random})", callback_data=f's:mode:{GameMode.RANDOM.value}')])
+    buttons.append([InlineKeyboardButton(text = "⚙️ Edit Random", callback_data=f's:edit_random')])
+
+    await edit_message(session, text, buttons)
+    session.game_substate = SetupSubstate.CHOOSE_MODE
+    return False
+
+  # --- EDIT_RANDOM_MODE ---
+  if (session.game_substate == SetupSubstate.CHOOSE_MODE and data == "s:edit_random") or (session.game_substate == SetupSubstate.EDIT_RANDOM_MODE and query.data.startswith("s:toggle_random:")):
+    session.game_substate = SetupSubstate.EDIT_RANDOM_MODE
+    user = get_user_by_id(update.effective_user.id)
+
+    if query.data.startswith("s:toggle_random:"):
+      mode_txt = query.data.split(':')[2]
+      mode = GameMode(mode_txt)
+
+      if mode in user.random_modes:
+        if len(user.random_modes) <= 2:
+          await query.answer("You must have at least 2 modes selected for random mode.", show_alert=True)
+          return False
+        user.random_modes.remove(mode)
+      else:
+        user.random_modes.append(mode)
+      user.set_least_random() # Update least_random based on current random_modes
+
+    text = (
+      "The modes you select here will be the only ones that show up when you choose random mode.\n"
+      "You have to select at least 2 modes\n\n"
+      f"To play with the current list of modes you must have at least {user.least_random} players."
+    )
+
+    buttons = [
+      [InlineKeyboardButton(
+        text = mode.label + (" ✔" if mode in user.random_modes else " ✘"),
+        callback_data=f's:toggle_random:{mode.value}'
+      )] for mode in GameMode if mode != GameMode.RANDOM
+    ]
+    buttons.append([InlineKeyboardButton(text = "Back to mode selection", callback_data=f's:choose_mode')])
+
+    await edit_message(session, text, buttons)
+    return False
+
+  # --- CHOOSE_MODE ---
+  if session.game_substate == SetupSubstate.CHOOSE_MODE and query.data.startswith("s:mode:"):
+    mode_txt = query.data.split(':')[2]
+    mode = GameMode(mode_txt)
+
+    # validate min players
+    if mode == GameMode.RANDOM:
+      user = get_user_by_id(update.effective_user.id)
+      if user.least_random > len(game.players):
+        await query.answer(
+          f"Random mode requires at least {user.least_random} players based on your current random mode settings.\nGame has {len(game.players)} players.",
+          show_alert=True
+        )
+        return False
+
+    if mode.min_players > len(game.players):
+      await query.answer(
+        f"This mode requires at least {mode.min_players} players. Game has {len(game.players)}",
+        show_alert=True
+      )
+      return False
+
+    if mode == GameMode.RANDOM:
+      user = get_user_by_id(update.effective_user.id)
+      game.random_mode_options = user.random_modes
+    
+    game.mode = mode
+    text=f'Game mode set: {mode.label}\n\nAll set! Click below to start the game.'
+    buttons = [
+      [InlineKeyboardButton("Start Game", callback_data='g:start_round')]
+    ]
+    
+    await edit_message(session, text, buttons)
+    session.game_substate = SetupSubstate.FINISHED
+    return False
+
+  if session.game_substate == SetupSubstate.FINISHED and data == "g:start_round":
+    game.state = GameState.INFORM
+    session.game_substate = None
+    return True
+  
+  return False
+
+
+
+
+====================================================================================================
+flows/states.py
+====================================================================================================
+
+from enum import Enum
+
+class GameState(str, Enum):
+  SETUP = "setup"
+  CATEGORY_SETTINGS = "category_settings"
+  INFORM = "inform"
+  QUESTION = "question"
+  VOTE = "vote"
+  REVEAL = "reveal"
+  GUESS_WORD = "guess_word"
+  GUESS_OUTSIDER = "guess_outsider"
+  VOTE_WORDS = "vote_words"
+  GUESS_TEAMS = "guess_teams"
+  RESULTS = "results"
+
+
+
+====================================================================================================
+flows/substates.py
+====================================================================================================
+
+from enum import Enum
+from typing import Union
+
+# ----------------------
+# SETUP
+# ----------------------
+class SetupSubstate(str, Enum):
+  PLAYERS_COUNT = "players_count"
+  GAME_TYPE = "game_type"
+  INPUT_NAMES = "input_names"
+  WAITING = "waiting"
+  CHOOSE_ROUNDS = "choose_rounds"
+  CHOOSE_CATEGORY = "choose_category"
+  CHOOSE_MODE = "choose_mode"
+  EDIT_RANDOM_MODE = "edit_random_mode"
+  FINISHED = "finished"
+
+# ----------------------
+# CATEGORY SETTINGS
+# ----------------------
+class CategorySettingsSubstate(str, Enum):
+  MAIN = "main"                          # Main category settings screen
+  DELETE = "delete"                      # Deleting a category (only for user generated categories)
+  CREATE = "create"                      # Creating a new category
+  VIEW = "view"                          # Viewing category words
+  TOGGLE = "toggle"        # Toggling category inclusion in random selection
+
+# ----------------------
+# INFORM
+# ----------------------
+class InformSubstate(str, Enum):
+  SHOW = "show"                       # Player is viewing their info
+  HIDE = "hide"                       # "Give phone to X"
+  ROUND_INFO = "round_info"           # Shows the info of the entire round
+  END = "end"
+
+
+# ----------------------
+# QUESTIOn
+# ----------------------
+class QuestionSubstate(str, Enum):
+  ASK = "ask"                        # Main loop of asking
+  END = "end"                        # Finished questioning (advance to voting)
+
+
+# ----------------------
+# VOTe
+# ----------------------
+class VoteSubstate(str, Enum):
+  SELECT = "select"                  # Choosing who to vote
+  CONFIRM = "confirm"                # Confirming vote
+  END = "end"
+
+
+# ----------------------
+# REVEAL
+# ----------------------
+class RevealSubstate(str, Enum):
+  SHOW_RESULT = "show_result"       # Show who outsider is
+  CHOICE = "choice"                 # Choose next step (word / outsider)
+
+
+# ----------------------
+# GUESS WORD
+# ----------------------
+class GuessWordSubstate(str, Enum):
+  CHOOSING  = "choosing"                    # Picking a word
+  RESULT    = "result"                      # Showing correct/wrong
+  WAITING   = "waiting"                     # Waiting for guesser to choose a word (while showing the guessing screen to others)
+
+
+# ----------------------
+# GUESS OUTSIDER
+# ----------------------
+class GuessOutsiderSubstate(str, Enum):
+  CHOOSING = "choosing"            # Picking suspect
+  RESULT = "result"                # Showing result
+  WAITING = "waiting"
+
+
+# ----------------------
+# VOTE WORDS
+# ----------------------
+class VoteWordsSubstate(str, Enum):
+  START = "start"                
+  VOTING = "voting"            
+  WAITING = "waiting"
+  RESULT = "result"
+
+
+# ----------------------
+# GUESS TEAMS
+# ----------------------
+class GuessTeamsSubstate(str, Enum):
+  GUESSING = "guessing"            
+  RESULT = "result"     
+  WAITING = "waiting"           
+
+
+# ----------------------
+# RESULTS
+# ----------------------
+class ResultsSubstate(str, Enum):
+  ROUND_RESULTS = "round_results"                 # Round results screen
+  ROUND_REPORT = "round_report"                   # Round report screen
+  FINAL_RESULTS = "final_ersults"                 # End game results
+  EDIT_SCORE = "edit_score"                       # Edit players scores
+
+
+# ------------------
+# Any Substate
+# ------------------
+AnySubstate = Union[
+  SetupSubstate,
+  CategorySettingsSubstate,
+  InformSubstate,
+  QuestionSubstate,
+  VoteSubstate,
+  RevealSubstate,
+  GuessWordSubstate,
+  GuessOutsiderSubstate,
+  VoteWordsSubstate,
+  GuessTeamsSubstate,
+  ResultsSubstate
+]
+
+
+AnyCategorySettingsSubstate = [
+  CategorySettingsSubstate.MAIN,
+  CategorySettingsSubstate.TOGGLE,
+  CategorySettingsSubstate.DELETE,
+  CategorySettingsSubstate.CREATE,
+  CategorySettingsSubstate.VIEW
+]
+
+
+
+====================================================================================================
+flows/vote.py
+====================================================================================================
+
+from data.modes import GameMode
+from flows.states import GameState
+from flows.substates import VoteSubstate
+from telegram import InlineKeyboardButton, Update
+from flows.msg_utils import *
+
+async def handle_voting(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data
+
+  # --- INITIALIZE ---
+  if data == 'g:start_vote':
+    game.sessions_ready = 0
+    game.turn_index = 0
+    reset_turn_indices(game)
+    set_all_substates(game, VoteSubstate.SELECT)
+    buttons = [[InlineKeyboardButton(text = "Start Voting", callback_data = "g:revote")]]
+    await broadcast_message(game = game, mode = "edit", text = session.text, buttons = buttons, exclude_chat_ids = [session.chat_id])
+  
+  elif data == 'g:revote':
+    session.game_substate = VoteSubstate.SELECT
+
+  elif data == "g:reveal" and session.game_substate == VoteSubstate.END:
+    game.count_votes()
+    game.state = GameState.REVEAL
+    set_all_substates(game, None)
+    return True
+
+  # --- confirmation ---
+  if data == "g:confirm" and session.game_substate == VoteSubstate.CONFIRM:
+    voter = session.players[session.turn_index] 
+    voter.confirm_vote()
+    session.turn_index += 1
+  
+    session.game_substate = VoteSubstate.SELECT
+  
+    # --- END CONDITION ---
+
+    if session.turn_index >= len(session.players):
+      session.game_substate = VoteSubstate.END
+      game.sessions_ready += 1
+      ready = True if game.sessions_ready >= len(game.chat_ids) else False
+
+      text = "Done Voting!"
+      waiting_text = "\n\nWaiting for other players to vote."
+      
+      button_txt = "Reaveal Outsider"
+      if game.mode == GameMode.TEAMS and game.detective:
+        button_txt = "Reveal Detective"
+      elif game.mode == GameMode.TEAMS:
+        button_txt = "Reveal Teams"
+        
+      buttons = [[InlineKeyboardButton(button_txt, callback_data = "g:reveal")]]
+      
+      if session.user_id == game.owner_id and ready:
+        await edit_message(session, text, buttons)
+      else:
+        text += waiting_text
+        await edit_message(session, text)
+
+        if ready:
+          owner_session = get_session_of_owner(game=game)
+          await edit_message(owner_session, text, buttons)
+
+      return False
+
+
+
+  # --- handle vote selection ---
+
+
+  if data.startswith("g:vote_") and session.game_substate == VoteSubstate.SELECT:
+    voter = session.players[session.turn_index]  
+    voted_id = int(data.replace("g:vote_", ""))
+    voted_player = game.get_player_by_id(voted_id)
+    voter.vote_on(voted_player)
+
+    session.game_substate = VoteSubstate.CONFIRM
+    text=f"{voter.name}, are you sure you want to vote for {voted_player.name}?\n\nYou can't change this later."
+    buttons = [
+      [InlineKeyboardButton("Yes, confirm", callback_data = "g:confirm")],
+      [InlineKeyboardButton("No, choose again", callback_data = "g:revote")]
+    ]
+    await edit_message(session, text, buttons)
+    return False
+
+  if session.game_substate == VoteSubstate.SELECT:
+    # --- render current voter choices ---
+    voter = session.players[session.turn_index] 
+    buttons = []
+    for p in game.players:
+      if p != voter:
+        buttons.append([InlineKeyboardButton(p.name, callback_data = f"g:vote_{p.id}")])
+
+    if game.mode == GameMode.TEAMS:
+      text = f"{voter.name}, vote for any of who you think are the in the other team:"
+    else:
+      text=f"{voter.name}, vote for who you think is the outsider:"
+    
+    await edit_message(session, text, buttons)
+    
+    return False
+
+
+
+====================================================================================================
+flows/vote_words.py
+====================================================================================================
+
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import VoteWordsSubstate
+from telegram import InlineKeyboardButton, Update
+
+async def handle_vote_words(update: Update, game: Game, session: Session):
+  query = update.callback_query
+  data = query.data if query else None
+
+
+  if data == "g:vote_words" and session.game_substate is None:
+    game.sessions_ready = 0
+    game.turn_index = 0
+    reset_turn_indices(game)
+    set_all_substates(game, VoteWordsSubstate.START)
+    start_text = "You should try to vote the other team's word.\nThe Entire team gets points for one word after voting.\n\nThe only word that counts is the one that has most votes.\nIf there is a tie the game chooses randomly between the tied words.\n\nYou can and should discuss with your team before voting."
+    await broadcast_message(game = game, mode = "edit", text = start_text, buttons = [[InlineKeyboardButton("Start Voting", callback_data = "g:start_voting")]])
+  
+  
+  if (data == "g:start_voting" and session.game_substate == VoteWordsSubstate.START) or (session.game_substate == VoteWordsSubstate.VOTING and "_choice" in query.data):
+    
+    if session.turn_index >= len(session.players):
+      session.game_substate = VoteWordsSubstate.RESULT
+      vote = False
+    else:
+      voter = session.players[session.turn_index]
+      vote = True
+
+
+    if vote and voter == game.detective:
+      session.turn_index += 1
+      if (session.turn_index) >= len(session.players):
+        vote = False
+        session.game_substate = VoteWordsSubstate.RESULT
+      else:
+        voter = session.players[session.turn_index]
+    
+    if vote:
+      session.game_substate = VoteWordsSubstate.VOTING
+
+      if voter in game.alphas:
+        choices = game.alpha_choices
+        other_team = "Beta"
+        prefix = "a"
+
+      elif voter in game.betas:
+        choices = game.beta_choices
+        other_team = "Alpha"
+        prefix = "b"
+
+      buttons = []
+      for i,choice in enumerate(choices):
+        buttons.append([InlineKeyboardButton(choice, callback_data=f"g:{prefix}_choice:{i}")])
+      
+      text = f"{voter.name}, Vote for what you think is the word of team {other_team}\n"
+
+      await edit_message(session, text, buttons)
+      session.turn_index += 1
+
+
+  if data.startswith("g:a_choice:"):
+    word_idx = int(data.replace("g:a_choice:", ""))
+    word = game.alpha_choices[word_idx]
+    word_votes = game.alphas_guesses.get(word, 0)
+    word_votes += 1
+    game.alphas_guesses[word] = word_votes
+  
+  if data.startswith("g:b_choice:"):
+    word_idx = int(data.replace("g:b_choice:", ""))
+    word = game.beta_choices[word_idx]
+    word_votes = game.betas_guesses.get(word, 0)
+    word_votes += 1
+    game.betas_guesses[word] = word_votes
+  
+    
+  if session.game_substate == VoteWordsSubstate.RESULT:
+    game.sessions_ready += 1
+    if game.sessions_ready < len(game.chat_ids):
+      await edit_message(session, "Waiting for other players to finish voting...")
+      return False
+    else:    
+      result_message = game.check_team_guess()
+      text = f"{result_message}Now Let's see round results"
+      buttons = [[InlineKeyboardButton("See Results", callback_data = "g:round_results")]]
+
+      owner_session = get_session_of_owner(game = game)
+      await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [owner_session.chat_id])
+      await edit_message(owner_session, text, buttons)
+      
+      game.state = GameState.RESULTS
+      set_all_substates(game, None)
+
+      return False
+    
+
+# Something is horribly wrong.
+
+
+
+====================================================================================================
+handlers/__init__.py
+====================================================================================================
+
+
+
+
+
+====================================================================================================
+handlers/interaction_handlers.py
+====================================================================================================
+
+from telegram import Update
+from handlers.utils import *
+from flows.router import route_game
+from flows.substates import SetupSubstate
+from telegram.ext import CallbackQueryHandler, MessageHandler, filters, ContextTypes
+
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  query = update.callback_query
+  data = query.data if query else None
+  ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+
+  if not data or not data.startswith(("s:", "g:", "e:")):
+    return
+
+  session, game = get_session_game(update)
+
+  is_starting_game = data == "s:setup_game"
+  
+  if not is_active(update) and not is_starting_game:
+    await query.answer(text = "This is not Active anymore.")
+    return
+
+  await route_game(update, context, game, session)
+
+  
+async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  session, game = get_session_game(update)
+  if not is_active(update):
+    if game and session and session.game_substate == SetupSubstate.INPUT_NAMES:
+      await update.effective_chat.send_message(text = "This is not the right message.\nTry /game to see the active game.")
+    return
+
+  await route_game(update, context, game, session)
+  
+
+callback_handler = CallbackQueryHandler(handle_callback, pattern = r"^(g:|s:|e:)")
+reply_handler = MessageHandler(filters.TEXT & ~filters.COMMAND & filters.REPLY, handle_reply)
+
+interaction_handlers = [
+  callback_handler,
+  reply_handler
+]
+
+
+
+====================================================================================================
+handlers/user_commands_handlers.py
+====================================================================================================
+
+#user_commands_handlers.py
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
+from flows.msg_utils import *
+from flows.states import GameState
+from flows.substates import SetupSubstate
+from handlers.utils import *
+
+async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will change this to proper start later...
+  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+
+  if context.args:
+    await join_game(update, context)
+    return
+
+
+  keyboard = [
+    [InlineKeyboardButton("Start a new game", callback_data = 's:setup_game')],
+    [InlineKeyboardButton("View game rules", callback_data = 'help')],
+  ]
+  
+  await context.bot.send_message(
+    chat_id = update.message.chat_id,
+    text = 'Welcome! Please choose an option:',
+    reply_markup = InlineKeyboardMarkup(keyboard)
+  )
+
+async def start_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+
+  keyboard = [
+    [InlineKeyboardButton("Start it", callback_data = 's:setup_game')],
+    [InlineKeyboardButton("don't start", callback_data = 'del_message')],
+  ]
+
+  await context.bot.send_message(
+    chat_id = update.message.chat_id,
+    text = 'Starting a new game ends any runinng game.',
+    reply_markup = InlineKeyboardMarkup(keyboard)
+  )
+
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  pass # will be huge later...
+
+async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, current_game = get_user_game(update)
+  args = context.args
+
+  if not args:
+    text = "To join a game use:\n/join <game_code>\n\nExample:\n/join 3AB9J4"
+
+    if current_game:
+      text = (
+        "⚠️ You are already in a game.\n"
+        "Joining another will end your current one.\n"
+        "To see your game try /game\n\n"
+        + text
+      )
+
+    await context.bot.send_message(
+      chat_id=update.effective_chat.id,
+      text=text
+    )
+    return
+  
+  code = args[0]
+  game = get_game_by_id(code)
+  if not game:
+    await context.bot.send_message(
+      chat_id=update.effective_chat.id,
+      text=f"Game with code {args[0]} is not found."
+    )
+    return
+  
+  if current_game == game:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "You are already in this game.\nuse /game to see it."
+    )
+    return
+  
+  if current_game:
+    terminate_game(current_game)
+
+  slots = empty_slots(game)
+  msg = await context.bot.send_message(
+    chat_id=update.effective_chat.id,
+    text=(
+      "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+      "Names should be separated by spaces or each on a line.\n"
+      f"The game has room for {slots} players."
+    ),
+  )
+
+  add_user_to_game(user, game)
+  session = set_session(
+    chat_id = update.effective_chat.id,
+    message_id = msg.message_id,
+    game_id = game.id,
+    user_id = user.id,
+    bot = context.bot,
+    game_substate = SetupSubstate.INPUT_NAMES
+  )
+
+  #Notifying other sessions that another seat has been reserved
+  slots = empty_slots(game)
+  await broadcast_message(
+    game = game, mode = "edit",
+    text = (
+      "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+      "Names should be separated by spaces or each on a line.\n"
+      f"game has room for {slots} players"
+    ),
+    exclude_chat_ids = [session.chat_id],
+    only_with_substate = SetupSubstate.INPUT_NAMES,
+  )
+
+async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update) # Ensures user
+  
+  if not await check_game(update, context, game):
+    return
+  
+  if game.state == GameState.SETUP:
+    text = "Game is not started yet.\nSee it with /game or start one with /new"
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = text,
+    )
+    return
+  
+  if not await check_ownership(update, context, user, game):
+    return
+  
+  game.restart_game()
+  text = f'Game Restarted\nClick below to start the game.'
+  buttons = [[InlineKeyboardButton("Start Game", callback_data='g:start_round')]]
+  session = get_session_of_chat(update.effective_chat.id)
+  
+  set_all_substates(game, SetupSubstate.FINISHED)
+  await broadcast_message(game = game, mode = "edit", text = "Game Restarted by owner", exclude_chat_ids = [session.chat_id])
+  await edit_message(session, text, buttons)
+
+async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update) # Ensures user
+  
+  if not await check_game(update, context, game):
+    return
+  
+  session = get_session_of_chat(update.effective_chat.id)
+  await send_message(session, text = session.text, buttons = session.build_buttons(), parse_mode = session.parse_mode)
+
+async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  if update.message:
+    await update.message.delete()
+  elif update.callback_query:
+    await update.callback_query.message.delete()
+
+async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  
+  if not await check_game(update, context, game):
+    return
+  
+  if not await check_ownership(update, context, user, game):
+    return
+  
+  await broadcast_message(game=game, mode="edit", text="Game was ended by owner.")
+  terminate_game(game)
+  return 
+
+async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  
+  if not await check_game(update, context, game):
+    return
+  
+  if await check_ownership(update, context, user, game):
+    await broadcast_message(game = game, mode = "edit", text = "Owner has leaved, so the game has ended.")
+    terminate_game(game)
+    return
+  else:
+    pass #should do something 
+
+async def sttings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  
+  if game:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "You can't edit settings in a running game.\nTry /end to end the current game or /game to see it."
+    )
+    return
+
+  new_message = await context.bot.send_message(
+    chat_id = update.effective_chat.id,
+    text = "Choose what you want to edit",
+    reply_markup = InlineKeyboardMarkup([
+      [InlineKeyboardButton("Categories", callback_data = "e:categories")],
+      [InlineKeyboardButton("Done", callback_data = f"e:done")]
+    ])
+  )
+
+  session = set_session(
+    chat_id = update.effective_chat.id,
+    message_id = new_message.message_id,
+    game_id = None,
+    user_id = update.effective_user.id,
+    bot = context.bot,
+  )
+  
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = get_user_game(update)
+  args = context.args
+
+  # 🟡 No message
+  if not args:
+    await update.message.reply_text(
+      "Usage:\n/broadcast <message>\n\nExample:\n/broadcast hurry up!"
+    )
+    return
+
+  if not await check_game(update, context, game):
+    return
+
+  message_text = " ".join(args)
+
+
+  # 🔥 Send to all sessions in game except sender
+  sender_session = get_session_of_user(user.id, user.username)
+  for cid in game.chat_ids:
+    session = get_session_of_chat(cid)
+    if session == sender_session:
+      continue
+
+    formatted = f"{sender_session.players[0].name}: {message_text}"
+    try:
+      await context.bot.send_message(
+        chat_id = session.chat_id,
+        text = formatted
+      )
+    except Exception as e:
+      print(f"Broadcast failed for session {session.chat_id}: {e}")
+
+async def check_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game):
+  if not game:
+    if update.callback_query:
+      await update.callback_query.answer(
+        text = "You are not in a game."
+      )
+    else:
+      await context.bot.send_message(
+        chat_id = update.effective_chat.id,
+        text = "You have no running game.\nTry /new to start one" 
+      )
+    return False
+  return True
+
+async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE, user: User, game: Game):
+  if game.owner_id != user.id:
+    await context.bot.send_message(
+      chat_id = update.effective_chat.id,
+      text = "You are not the owner.\nYou can leave the game using /leave"
+    )
+    return False
+  return True
+
+help_handler = CommandHandler('help', help)
+end_handler = CommandHandler('end', end_game)
+join_handler = CommandHandler('join', join_game)
+resend_handler = CommandHandler('game', resend_game)
+start_bot_handler = CommandHandler('start', start_bot)
+reset_handler = CommandHandler('restart', restart_game)
+start_new_game_handler = CommandHandler('new', start_new_game)
+edit_settings_handler = CommandHandler('settings', sttings)
+broadcast_handler = CommandHandler(["broadcast", "bc"], broadcast)
+help_callback_handler = CallbackQueryHandler(help, pattern='help')
+del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')
+
+user_commands_handlers = [
+  start_bot_handler,
+  start_new_game_handler,
+  help_handler,
+  join_handler,
+  reset_handler,
+  resend_handler,
+  end_handler,
+  help_callback_handler,
+  del_message_handler,
+  broadcast_handler,
+  edit_settings_handler,
+]
+
+
+
+====================================================================================================
+handlers/utils.py
+====================================================================================================
+
+from telegram import Update
+from data.runtime import *
+from data.runtime_manager import *
+
+def get_user_game(update: Update):
+  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+  game = get_game_of_user(user = user)  
+  return (user, game)
+
+def get_session_game(update: Update):
+  chat_id = update.effective_chat.id
+  session = get_session_of_chat(chat_id = chat_id)
+  game = get_game_of_session(chat_id = chat_id)
+  return (session, game)
+
+def is_active(update: Update):
+  chat_id = update.effective_chat.id
+  active_session = get_session_of_chat(chat_id)
+
+  if not active_session:
+    return False
+
+  message_id = None
+  
+  if update.message and update.message.reply_to_message:
+    message_id = update.message.reply_to_message.message_id
+  elif update.callback_query:
+    message_id = update.callback_query.message.message_id
+  
+  if not message_id:
+    return False
+
+  
+  if active_session.message_id == message_id:
+    return True
+  else:
+    return False
+
+
+def end_game(game: Game):
+  terminate_game(game=game)
+
+
+
+====================================================================================================
+models/__init__.py
+====================================================================================================
+
+class GameSession():
+  def __init__(self, game_id, chat_id, message_id):
+    self.game_id    = game_id
+    self.chat_id    = chat_id
+    self.message_id = message_id
+    
+
+
+
+====================================================================================================
+models/category.py
+====================================================================================================
+
+from dataclasses import dataclass, field
+from typing import List, Optional
+from datetime import datetime, timezone
+
+
+@dataclass
+class Category:
+  title: str
+  words: List[str]
+
+  description: str = ""
+  language: str = "en"
+
+  is_builtin: bool = False
+  id: Optional[str] = None
+  owner_id: Optional[int] = None
+
+  created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+  @property
+  def size(self):
+    return len(self.words)
+  
+  def generate_id(self):
+    timestamp = int(self.created_at.timestamp() * 1000)  # Convert to milliseconds
+    self.id = f"{self.title.lower().replace(' ', '_')}_{timestamp}"
+  
+
+
+
+
+====================================================================================================
+models/game.py
+====================================================================================================
+
+import random
+from config import *
+from data.modes import GameMode
+from flows.states import GameState
+from models.player import Player
+from data.default_categories import *
+
+class Game:
+
+  def __init__(self, game_id, owner_id):
+    #ids
+    self.id        = game_id
+    self.owner_id  = owner_id
+    self.user_ids  = [owner_id]
+    self.chat_ids: list[int]  = [] 
+
+    # Game
+    self.type = None
+    self.players: list[Player] = []
+    self.num_rounds = 0
+    self.used_words = []
+    self.round_number = 0
+    self.random_mode = False
+    self.random_category = False
+    self.all_categories : list[Category] = []
+    self.random_mode_options: list[GameMode] = [] # Only used if random mode is chosen, stores the options the owner can choose from
+    self.random_category_options: list[Category] = [] # Only used if random category is chosen, stores the options the owner can choose from
+    self.intial_players_count = 0
+    self.final_result_text: str = ""
+
+    # Round
+    self.mode: GameMode = None
+    self.category: Category = None
+    self.word: str = None
+    self.pairs: list[tuple] = []
+    self.choices: list[str] = []
+    self.round_report: str = ""
+    self.word_guesser: Player = None
+    self.outsiders: list[Player] = []
+    self.insiders: list[Player] = []
+    self.spy: Player = None
+    self.round_result_text: str = ""
+    #teams only
+    self.alpha_word = None
+    self.alpha_choices = []
+    self.alphas_guesses = {}
+    self.alphas: list[Player] = []
+    
+    self.beta_word = None
+    self.beta_choices= []
+    self.betas_guesses = {}
+    self.betas: list[Player] = []
+    
+    self.detective: Player = None
+
+
+    # State
+    self.state = None
+    self.sessions_ready = 0
+    self.turn_index = 0
+    self.names = []
+        
+
+  def start_round(self):
+    self.reset_round()
+    for player in self.players: 
+      player.clear_leftovers()
+    
+    self.round_number += 1
+    self.round_report = f"Round {self.round_number} Report\n\n"
+    self.assign_roles()
+    self.assign_words_and_choices()
+    self.pair_players()
+
+    setup_message = f"Round {self.round_number}\n\nCategory is {self.category.title}\n\nMode is {self.mode.label}"
+    return setup_message
+  
+  def prepare_players(self, session_id, players_names):
+    length = len(self.players)
+    new_names = []
+    for name in players_names:
+      self.names.append(name)
+      if self.names.count(name) > 1:
+        r = self.names.count(name)
+        name += f"_{r}"
+      new_names.append(name)
+
+    new_players = [
+      Player(name = n, session_id = session_id, id = length + i)
+      for i, n in enumerate(new_names)
+    ]
+
+    self.players.extend(new_players)
+
+    return new_players
+
+
+  def assign_roles(self):
+    if self.mode == GameMode.RANDOM:
+      self.random_mode = True
+
+    if self.random_mode:
+      available_modes = [m for m in self.random_mode_options if m.min_players <= len(self.players) and m != GameMode.RANDOM]
+      self.mode = random.choice(available_modes)
+    
+    roles = []
+
+    if self.mode == GameMode.TEAMS:
+      players_per_team = len(self.players) // 2
+      roles = ["alpha", "beta"] * players_per_team
+      
+      if len(self.players) % 2 == 1:
+        roles.append("detective")
+    
+    else:
+      num_outsiders = self.mode.num_outsiders
+      num_spies = self.mode.num_spies
+      num_insiders = len(self.players) - num_outsiders - num_spies
+ 
+      roles = ["outsider"] * num_outsiders + ["spy"] * num_spies + ["insider"] * num_insiders
+    
+    random.shuffle(roles)
+    for player in self.players:
+      player.role = roles.pop()
+      if player.role == "insider": self.insiders.append(player)
+      elif player.role == "outsider": self.outsiders.append(player)
+      elif player.role == "alpha": self.alphas.append(player)
+      elif player.role == "beta": self.betas.append(player)
+      elif player.role == "spy": self.spy = player
+      elif player.role == "detective": self.detective = player
+  
+  def assign_words_and_choices(self):
+    if self.category is None:           # pass nothing = passing random (temp)
+      self.random_category = True
+    
+    if self.random_category:
+      self.category = random.choice(self.random_category_options)
+    
+    og_list = self.category.words.copy()
+    word_list = [w for w in og_list if w not in self.used_words] #Only ones not used before
+    
+    if len(word_list) <= NUM_CHOICES:
+      self.used_words = [w for w in self.used_words if w not in og_list] #Refreshing the list
+
+    if self.mode == GameMode.TEAMS:                                # Repeatition is badddd
+      self.alpha_word = random.choice(word_list)
+      self.used_words.append(self.alpha_word)
+      word_list.remove(self.alpha_word)
+      
+      self.beta_word = random.choice(word_list)
+      self.used_words.append(self.beta_word)
+      word_list.remove(self.beta_word)
+
+      self.alpha_choices = random.sample(word_list, NUM_CHOICES - 1) + [self.beta_word]
+      random.shuffle(self.alpha_choices)
+
+      self.beta_choices = random.sample(word_list, NUM_CHOICES - 1) + [self.alpha_word]
+      random.shuffle(self.beta_choices)
+
+      for player in self.players:
+        if player.role == "alpha":
+          player.word = self.alpha_word
+        elif player.role == "beta":
+          player.word = self.beta_word
+        elif player.role == "detective":
+          player.alpha_word = self.alpha_word
+          player.beta_word = self.beta_word
+
+    else:
+      self.word = random.choice(word_list)
+      self.used_words.append(self.word)
+      word_list.remove(self.word)
+      self.choices = random.sample(word_list, NUM_CHOICES - 1) + [self.word]
+      random.shuffle(self.choices)
+
+      for player in self.players:
+        if player.role != "outsider":
+          player.word = self.word
+        else:
+          player.word = "??????"
+
+  def pair_players(self):
+    askers = self.players[:]
+    random.shuffle(askers)
+    answerers = askers[1:] + [askers[0]]
+    self.pairs =  list(zip(askers, answerers))
+  
+
+
+  def count_votes(self):
+  
+    for insider in self.insiders:
+      
+      if insider.voted_on and insider.voted_on.role == "outsider":
+        insider.round_score += 10
+        self.round_report += f"{insider.name} (insider) voted on {insider.voted_on.name} (outsider) (+10P)\n"
+      
+      elif insider.voted_on and insider.voted_on.role == "insider":
+        self.round_report += f"{insider.name} (insider) voted on {insider.voted_on.name} (insider)\n"
+
+    if self.spy:
+      if self.spy.voted_on and self.spy.voted_on.role == "outsider":
+        for player in self.spy.votes_against:
+          if player.role == "insider":
+            self.spy.round_score += 5
+            player.round_score -= 5
+            self.round_report += f"{player.name} (insider) voted on {player.voted_on.name} (spy) (-5P)\n"
+      
+      else:
+        for player in self.spy.votes_against:
+          if player.role == "insider":
+            self.spy.round_score -= 5
+            player.round_score += 5
+            self.round_report += f"{player.name} (insider) voted on {player.voted_on.name} (spy) (+5P)\n"
+      
+      sign = '+' if self.spy.round_score > 0 else ''
+      self.round_report += f"{self.spy.name} (spy) voted on {self.spy.voted_on.name} ({self.spy.voted_on.role}) ({sign}{self.spy.round_score}P)\n"
+      
+
+    for outsider in self.outsiders:
+      if outsider.voted_on:      #Just for safty
+        self.round_report += f"{outsider.name} (outsider) voted on {outsider.voted_on.name} ({outsider.voted_on.role})\n"
+      if not outsider.votes_against:
+        outsider.round_score += 5
+        self.round_report += f"{outsider.name} (outsider) got no votes (+5P)\n"
+
+    
+    for alpha in self.alphas:
+      
+      if alpha.voted_on and alpha.voted_on.role == "beta":
+        alpha.round_score += 5
+        self.round_report += f"{alpha.name} (alpha) voted on {alpha.voted_on.name} (beta) (+5P)\n"
+      
+      elif alpha.voted_on and alpha.voted_on.role == "alpha":
+        alpha.round_score -= 5
+        self.round_report += f"{alpha.name} (alpha) voted on {alpha.voted_on.name} (alpha) (-5P)\n"
+
+      
+      elif alpha.voted_on and alpha.voted_on.role == "detective":
+        alpha.round_score -= 5
+        self.round_report += f"{alpha.name} (alpha) voted on {alpha.voted_on.name} (detective) (-5P)\n"
+
+    
+    for beta in self.betas:
+      
+      if beta.voted_on and beta.voted_on.role == "alpha":
+        beta.round_score += 5
+        self.round_report += f"{beta.name} (beta) voted on {beta.voted_on.name} (alpha) (+5P)\n"
+      
+      elif beta.voted_on and beta.voted_on.role == "beta":
+        beta.round_score -= 5
+        self.round_report += f"{beta.name} (beta) voted on {beta.voted_on.name} (beta) (-5P)\n"
+      
+      elif beta.voted_on and beta.voted_on.role == "detective":
+        beta.round_score -= 5
+        self.round_report += f"{beta.name} (beta) voted on {beta.voted_on.name} (detective) (-5P)\n"
+
+    if self.detective:
+      self.round_report += f"{self.detective.name} (detective) voted on {self.detective.voted_on.name} ({self.detective.voted_on.role})\n"
+
+
+    self.round_report += "\n"
+  
+    if self.outsiders:
+      self.outsiders.sort(key=lambda p: (len(p.votes_against), -p.round_score), reverse=True) #highest votes against, then lowest score (bad situations to cheer them up)
+    
+
+
+  def check_word(self, word_choice: str):
+    if word_choice == self.word:
+      self.word_guesser.round_score += 10
+      self.round_report += f"{self.word_guesser.name} guessed the correct word (+10P)\n"
+      return True
+    else:
+      self.round_report += f"{self.word_guesser.name} guessed the wrong word\n"
+      return False
+  
+  def check_suspect(self, suspect: Player):
+    guesser = self.outsiders[0]
+
+    if suspect.role == 'outsider':
+      guesser.round_score += 20
+      self.round_report += f"{guesser.name} guessed the correct outsider ({suspect.name}) (+20P)\n"
+      return True
+    else:
+      guesser.round_score -=10
+      self.round_report += f"{guesser.name} guessed the wrong outsider ({suspect.name}) (-10P)\n"
+      return False
+
+  def check_detection(self):
+    if not self.detective:
+      return
+    
+    correct = 0
+    self.round_report += "The Detective suspected:\n"
+    
+    for sus in self.detective.sus_alphas:
+      self.round_report += f"{sus.name} to be in team Alpha: "
+      if sus in self.alphas:
+        self.detective.round_score += 5
+        self.round_report += "Correct (+5P)\n"
+        correct += 1
+      else:
+        self.detective.round_score -= 5
+        self.round_report += "Wrong (-5P)\n"
+    
+    for sus in self.detective.sus_betas:
+      self.round_report += f"{sus.name} to be in team Beta: "
+      if sus in self.betas:
+        self.detective.round_score += 5
+        self.round_report += "Correct (+5P)\n"
+        correct += 1
+      else:
+        self.detective.round_score -= 5
+        self.round_report += "Wrong (-5P)\n"
+
+    sign = '+' if self.detective.round_score > 0 else ''
+    self.round_report += f"Overall score: {sign}{self.detective.round_score}P\n\n"
+
+    result = f"{correct}/{len(self.players)-1} ({sign}{self.detective.round_score}P)"
+    self.detective.add_up_score()
+
+    return result
+
+  def check_team_guess(self):
+    mini_report = ""
+
+    # What Alphas chose
+    
+    alpha_guess = ""
+    tie_text = ""
+    top_voted_words = []
+    most_votes = max(self.alphas_guesses.values())
+    
+    for word,votes in self.alphas_guesses.items():
+      if votes == most_votes:
+        top_voted_words.append(word)
+    if len(top_voted_words) == 1:
+      alpha_guess = top_voted_words[0]
+    else:
+      tie_text = f"The words {", ".join(top_voted_words)} all got most votes ({most_votes}).\nSo the choice was random between them.\n"
+      alpha_guess = random.choice(top_voted_words)
+    
+
+    # Scoring for Alphas
+
+    if alpha_guess == self.beta_word:
+      mini_report += f"Alphas voted on the word {alpha_guess} and it was correct!\n"
+      mini_report += tie_text
+      mini_report += f"Each team member got +5 points.\n\n"
+      for alpha in self.alphas:
+        alpha.round_score += 5
+    else:
+      mini_report += f"Alphas voted on the word {alpha_guess} and it was wrong!\n"
+      mini_report += tie_text
+      mini_report += f"Each team member lost -5 points.\n\n"
+      for alpha in self.alphas:
+        alpha.round_score -= 5
+    
+
+
+    # What Betas chose
+
+    beta_guess = ""
+    tie_text = ""
+    top_voted_words = []
+    most_votes = max(self.betas_guesses.values())
+
+    for word,votes in self.betas_guesses.items():
+      if votes == most_votes:
+        top_voted_words.append(word)
+    if len(top_voted_words) == 1:
+      beta_guess = top_voted_words[0]
+    else:
+      tie_text = f"The words {", ".join(top_voted_words)} all got most votes ({most_votes}).\nSo the choice was random between them.\n"
+      beta_guess = random.choice(top_voted_words)
+    
+
+    # Scoring for Betas
+
+    if beta_guess == self.alpha_word:
+      mini_report += f"Betas voted on the word {beta_guess} and it was correct!\n"
+      mini_report += tie_text
+      mini_report += f"Each team member got +5 points.\n\n"
+      for beta in self.betas:
+        beta.round_score += 5
+    else:
+      mini_report += f"Betas voted on the word {beta_guess} and it was wrong!\n"
+      mini_report += tie_text
+      mini_report += f"Each team member lost -5 points.\n\n"
+      for beta in self.betas:
+        beta.round_score -= 5
+
+    self.round_report += mini_report
+
+    return mini_report
+
+  def get_player_by_id(self, id: int):
+    return next((p for p in self.players if p.id == id), None)
+  
+  def remove_player(self, id: int):
+    self.players = [p for p in self.players if p.id != id]
+  
+  def round_result(self, rewrite = False):
+    if self.round_result_text and not rewrite:
+      return self.round_result_text
+    
+    for player in self.players:
+      player.add_up_score()
+    
+    scores_snapshot = [(p, p.score) for p in self.players]
+    ranked = sorted(scores_snapshot, key=lambda x: x[1], reverse=True)
+    rank_map = {p: i for i, (p, _) in enumerate(ranked)}
+
+    results_text = "🏆 Round Results 🏆\n\n"
+    for p, score in ranked:
+      prev_rank = p.last_rank
+      current_rank = rank_map[p]
+
+      if prev_rank is None:
+        arrow = "➡️"
+      elif current_rank < prev_rank:
+        arrow = "⬆️"
+      elif current_rank > prev_rank:
+        arrow = "⬇️"
+      else:
+        arrow = "➡️"
+
+      # update last_rank
+      p.last_rank = current_rank
+
+      results_text += f"{arrow} {p.name} | {p.role} | {score}\n"
+
+    self.round_result_text = results_text
+    return results_text
+  
+  def final_result(self):
+    if self.final_result_text:
+      return self.final_result_text
+    
+    final_result_text = ""
+    
+    winning_score = max(p.score for p in self.players)
+    losing_score = min(p.score for p in self.players)
+    winners = [p for p in self.players if p.score == winning_score]
+    losers = [p for p in self.players if p.score == losing_score]
+    
+    if winning_score == losing_score:
+      final_result_text = f"All players got {winning_score} Points!"
+    else:
+      if len(winners) > 1:
+        final_result_text += "Winners are:\n"
+      else:
+        final_result_text += "Winner is:\n"
+      
+      final_result_text += "\n".join(["👑 " + winner.name for winner in winners])
+      final_result_text += "\n\n"
+      
+      if len(losers) > 1:
+        final_result_text += "Losers are:\n"
+      else:
+        final_result_text += "Loser is:\n"
+      
+      final_result_text += "\n".join(["😭 " + loser.name for loser in losers])
+
+    self.final_result_text = final_result_text
+    return final_result_text
+
+  def reset_round(self):
+    #just in case
+    self.final_result_text = ""
+    
+    # Round
+    self.word = None
+    self.choices = []
+    self.pairs = []
+    self.round_report = ""
+    self.word_guesser = None
+    self.insiders = []
+    self.outsiders = []
+    self.spy = None
+    self.round_result_text = ""
+    
+    #teams only
+    self.detective: Player = None
+    self.alphas: list[Player] = []
+    self.alpha_word = None
+    self.alpha_choices = []
+    self.betas: list[Player]  = []
+    self.beta_word = None
+    self.beta_choices = []
+    self.alphas_guesses = {}
+    self.betas_guesses = {}
+
+    for player in self.players:
+      player.clear_leftovers() 
+
+  def restart_game(self):
+    # Game
+    self.used_words = []
+    self.round_number = 0
+
+    # Round
+    self.reset_round()
+
+    # Players
+    for player in self.players:
+      player.reset()
+
+
+    # State
+    self.state = GameState.SETUP
+    self.turn_index = 0
+
+
+
+====================================================================================================
+models/player.py
+====================================================================================================
+
+class Player:
+  def __init__(self, name, session_id, id = 0,):
+    self.id = id
+    self.name = name
+    self.session_id = session_id
+
+    self.role = None
+    self.word = None
+    self.last_rank = None
+    self.votes_against: list[Player] = []
+    self.pending_vote: Player = None
+    self.voted_on:Player = None
+    self.saw_info = 0
+    self.score = 0
+    self.round_score = 0
+    
+    #For detectives only
+    self.alpha_word = None
+    self.beta_word = None
+    self.sus_alphas = []
+    self.sus_betas = []
+    self.team_guess = {}
+
+  
+  def clear_leftovers(self):
+    self.role = None
+    self.word = None
+    self.voted_on = None
+    self.pending_vote = None
+    self.votes_against = []
+    self.saw_info = 0
+    self.round_score = 0
+    self.alpha_word = None
+    self.beta_word = None
+    self.sus_alphas = []
+    self.sus_betas = []
+    self.team_guess = {}
+
+
+  def reset(self):
+    self.clear_leftovers()
+    self.score = 0
+    self.last_rank = None
+
+  
+  def vote_on(self, player):
+    self.pending_vote = player
+
+  def confirm_vote(self):
+    self.voted_on = self.pending_vote
+    self.pending_vote.votes_against.append(self)
+    self.pending_vote = None
+
+  
+  def add_up_score(self):
+    self.score += self.round_score
+    self.round_score = 0
+
+  
+  def info(self):
+    info_text = "info text"
+
+    if self.role in ["outsider", "insider", "spy"]:
+      info_text = (
+        f"<b>{self.name}</b>\n\n"
+        f"Your role is <tg-spoiler>{self.role}</tg-spoiler>\n"
+        f"Your word is <tg-spoiler>{self.word}</tg-spoiler>\n\n"
+        f"Current Score: {self.score}"
+      )
+    elif self.role in ["alpha", "beta"]:
+      info_text = (
+        f"<b>{self.name}</b>\n\n"
+        f"Your team is <tg-spoiler>{self.role}</tg-spoiler>\n"
+        f"Your word is <tg-spoiler>{self.word}</tg-spoiler>\n\n"
+        f"Current Score: {self.score}"
+      )
+    elif self.role == "detective":
+      info_text = (
+        f"<b>{self.name}</b>\n\n"
+        f"Your role is <tg-spoiler>{self.role}</tg-spoiler>\n"
+        f"Alpha word is <tg-spoiler>{self.alpha_word}</tg-spoiler>\n"
+        f"Beta word is <tg-spoiler>{self.beta_word}</tg-spoiler>\n\n"
+        f"Current Score: {self.score}"
+      )
+    return info_text
+
+
+
+
+
+
+
+====================================================================================================
+models/session.py
+====================================================================================================
+
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Bot
+from models.player import Player
+class Session:
+  def __init__(self, chat_id, message_id, game_id, user_id, bot, game_substate = None):
+    self.chat_id = chat_id
+    self.message_id = message_id
+    self.game_id = game_id
+    self.user_id = user_id
+    self.game_substate = game_substate
+    self.bot: Bot = bot
+    self.players: list[Player] = []
+    self.turn_index = 0
+    self.ready = False
+    self.text = None
+    self.raw_markup = None
+    self.parse_mode = None
+    
+  def set_ui(self, text:str = None, parse_mode:str = "", raw_markup:list = None, buttons: list[list[InlineKeyboardButton]]= None):
+    self.text = text
+    
+    if raw_markup is not None:
+      self.raw_markup = raw_markup
+    else:
+      self.raw_markup = []
+    
+    if buttons and raw_markup is None:
+      for r in buttons:
+        row = []
+        for btn in r:
+          row.append((btn.text, btn.callback_data))
+        self.raw_markup.append(row)
+    
+    self.parse_mode = parse_mode
+
+  def copy_ui(self, session):
+    self.text = session.text
+    self.raw_markup = [row[:] for row in session.raw_markup]
+    self.parse_mode = session.parse_mode
+
+  
+  def build_buttons(self):
+    if not self.raw_markup:
+      return None
+
+    return [
+      [InlineKeyboardButton(text, callback_data=data) for text, data in row]
+      for row in self.raw_markup
+    ]
+  
+  def build_markup(self):
+    if not self.raw_markup:
+      return None
+    
+    return InlineKeyboardMarkup(self.build_buttons())
+
+  def prepare_players(self, names, game):
+    self.players.extend(game.prepare_players(self.chat_id, names))
+
+
+
+
+====================================================================================================
+models/user.py
+====================================================================================================
+
+from data.default_categories import default_categories
+from data.modes import GameMode
+from models.category import Category
+
+class User:
+  def __init__(self, id, username):
+    self.id = id
+    self.game_id = None
+    self.username = username
+    self.random_modes = [m for m in GameMode if m != GameMode.RANDOM]
+    self.random_categories: list[Category] = [cat for cat in default_categories]
+    self.generated_categories: list[Category] = []
+    self.least_random = 4
+
+  def set_least_random(self):
+    if len(self.random_modes) < 2:
+      self.least_random = 4
+
+    min_vals = sorted(m.min_players for m in self.random_modes)
+    self.least_random = min_vals[1]
+
+
+
+====================================================================================================
+services/__init__.py
+====================================================================================================
+
+
+
+
+
+====================================================================================================
+services/game_services.py
+====================================================================================================
+
+from data.runtime_manager import *
+
+# Still an idea.
+class GameService:
+  @staticmethod
+  def join_game(user: User, game: Game):
+    if user.id not in game.user_ids:
+      game.user_ids.append(user.id)
+
+    user.game_id = game.id
+
+  @staticmethod
+  def leave_game(user: User, game: Game):
+    if user.id in game.user_ids:
+      game.user_ids.remove(user.id)
+
+    user.game_id = None
+
+  @staticmethod
+  def end_game(game: Game):
+    # remove all users from game
+    for uid in game.user_ids:
+      user = get_user_by_id(uid)
+      if user:
+        user.game_id = None
+
+    game.user_ids.clear()
+

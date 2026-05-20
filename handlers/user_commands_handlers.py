@@ -183,7 +183,7 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   else:
     pass #should do something 
 
-async def sttings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = get_user_game(update)
   
   if game:
@@ -273,7 +273,7 @@ resend_handler = CommandHandler('game', resend_game)
 start_bot_handler = CommandHandler('start', start_bot)
 reset_handler = CommandHandler('restart', restart_game)
 start_new_game_handler = CommandHandler('new', start_new_game)
-edit_settings_handler = CommandHandler('settings', sttings)
+edit_settings_handler = CommandHandler('settings', settings)
 broadcast_handler = CommandHandler(["broadcast", "bc"], broadcast)
 help_callback_handler = CallbackQueryHandler(help, pattern='help')
 del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')

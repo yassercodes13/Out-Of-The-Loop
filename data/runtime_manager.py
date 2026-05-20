@@ -33,7 +33,8 @@ def terminate_game(game: Game = None, game_id: str = None):
   
   for user_id in game.user_ids:
     user = get_user_by_id(user_id)
-    user.game_id = None
+    if user:
+      user.game_id = None
 
   return active_games.pop(game.id)
 
@@ -135,7 +136,9 @@ def get_session_of_user(user_id, username):
       
   return None
 
-def get_all_sessions(game: Game = None, game_id: str = None, excluded: list[int] = []) -> list[Session]:
+def get_all_sessions(game: Game = None, game_id: str = None, excluded: list[int] = None) -> list[Session]:
+  excluded = excluded or []
+  
   if not game:
     if not game_id:
       return []

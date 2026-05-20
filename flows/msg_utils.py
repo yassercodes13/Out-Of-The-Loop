@@ -53,7 +53,8 @@ async def send_message(session: Session, text: str, buttons: list[list[InlineKey
     return True
 
 
-async def broadcast_message(game: Game, mode: str, text: str, buttons: list[list[InlineKeyboardButton]] = None, parse_mode: str = None, exclude_chat_ids: list[int] = [], only_with_substate: AnySubstate = None):
+async def broadcast_message(game: Game, mode: str, text: str, buttons: list[list[InlineKeyboardButton]] = None, parse_mode: str = None, exclude_chat_ids: list[int] = None, only_with_substate: AnySubstate = None):
+  exclude_chat_ids = exclude_chat_ids or []
   
   if mode not in ["edit", "send"]:
     return
@@ -78,14 +79,16 @@ async def broadcast_message(game: Game, mode: str, text: str, buttons: list[list
     await asyncio.gather(*tasks, return_exceptions=True)
 
 
-def set_all_substates(game: Game, substate, exclude_chat_ids: list[int] = []):
+def set_all_substates(game: Game, substate, exclude_chat_ids: list[int] = None):
+  exclude_chat_ids = exclude_chat_ids or []
   sessions: list[Session] = get_all_sessions(game = game, excluded = exclude_chat_ids) 
   
   for session in sessions:
     session.game_substate = substate
 
 
-def reset_turn_indices(game, exclude_chat_ids: list[int] = []):
+def reset_turn_indices(game, exclude_chat_ids: list[int] = None):
+  exclude_chat_ids = exclude_chat_ids or []
   sessions = get_all_sessions(game = game, excluded = exclude_chat_ids)
 
   for session in sessions:
@@ -96,6 +99,6 @@ def empty_slots(game: Game):
   for s in get_all_sessions(game = game):
     if len(s.players) == 0:
       sessions_with_no_players += 1
-  empty_slots = game.intial_players_count - len(game.players) - sessions_with_no_players + 1  
+  empty_slots = game.initial_players_count - len(game.players) - sessions_with_no_players + 1  
   # the +1 because i will show that to an empty session always so the session may use the seat preserved to it
   return empty_slots

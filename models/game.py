@@ -25,7 +25,7 @@ class Game:
     self.all_categories : list[Category] = []
     self.random_mode_options: list[GameMode] = [] # Only used if random mode is chosen, stores the options the owner can choose from
     self.random_category_options: list[Category] = [] # Only used if random category is chosen, stores the options the owner can choose from
-    self.intial_players_count = 0
+    self.initial_players_count = 0
     self.final_result_text: str = ""
 
     # Round

@@ -33,7 +33,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
     if session.game_substate == SetupSubstate.PLAYERS_COUNT:
       players_count = int(query.data.split(":")[2])
-      game.intial_players_count = players_count
+      game.initial_players_count = players_count
 
     text = "How will you play?"
     buttons = [
@@ -71,7 +71,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
       text = (
         "Input players' names by replying to this message\n"
         "Names should be separated by spaces or each on a line.\n"
-        f"Player count must be {game.intial_players_count}."
+        f"Player count must be {game.initial_players_count}."
       )    
       await edit_message(session, text)
     elif game.type == "multiple":
@@ -102,8 +102,8 @@ async def handle_setup(update: Update, game: Game, session: Session):
     player_names = update.message.text.split()
     slots = empty_slots(game)
 
-    if game.type == "single" and not (len(player_names) == game.intial_players_count):
-      await update.message.reply_text(f"You must have {game.intial_players_count} players.")
+    if game.type == "single" and not (len(player_names) == game.initial_players_count):
+      await update.message.reply_text(f"You must have {game.initial_players_count} players.")
       return False
     elif game.type == "multiple" and not (1 <= len(player_names) <= slots):
       await update.message.reply_text(f"You must provide at least 1 player name and at most {slots}.")
@@ -117,14 +117,14 @@ async def handle_setup(update: Update, game: Game, session: Session):
         f"Players names set: {', '.join([p.name for p in session.players])}\n"
         f"Now waiting for other players to join using the game code...\n\n"
         f"Game Code is {game.id}\n"
-        f"Players joined: {len(game.players)}/{game.intial_players_count}"
+        f"Players joined: {len(game.players)}/{game.initial_players_count}"
       )
 
       buttons = None 
       old_message = update.message.reply_to_message if update.message else None
       await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
       
-      if (len(game.players) == game.intial_players_count):
+      if (len(game.players) == game.initial_players_count):
         buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
         owner_session = get_session_of_owner(game = game)
         await edit_message(owner_session, "All players joined!", buttons)
@@ -140,7 +140,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
           text = (
             f"Now waiting for other players to join using the game code...\n\n"
             f"Game Code is {game.id}\n\n"
-            f"Players joined: {len(game.players)}/{game.intial_players_count}"
+            f"Players joined: {len(game.players)}/{game.initial_players_count}"
           ),
           exclude_chat_ids = [session.chat_id],
           only_with_substate = SetupSubstate.WAITING,

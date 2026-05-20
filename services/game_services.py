@@ -1,27 +1,19 @@
 from data.runtime_manager import *
+from flows.msg_utils import broadcast_message, empty_slots
+from flows.substates import SetupSubstate
+from handlers.utils import *
 
-# Still an idea.
-class GameService:
-  @staticmethod
-  def join_game(user: User, game: Game):
-    if user.id not in game.user_ids:
-      game.user_ids.append(user.id)
+def leave_game(user: User, game: Game):
+  if user.id in game.user_ids:
+    game.user_ids.remove(user.id)
 
-    user.game_id = game.id
+  user.game_id = None
 
-  @staticmethod
-  def leave_game(user: User, game: Game):
-    if user.id in game.user_ids:
-      game.user_ids.remove(user.id)
+def end_game(game: Game):
+  # remove all users from game
+  for uid in game.user_ids:
+    user = get_user_by_id(uid)
+    if user:
+      user.game_id = None
 
-    user.game_id = None
-
-  @staticmethod
-  def end_game(game: Game):
-    # remove all users from game
-    for uid in game.user_ids:
-      user = get_user_by_id(uid)
-      if user:
-        user.game_id = None
-
-    game.user_ids.clear()
+  game.user_ids.clear()
