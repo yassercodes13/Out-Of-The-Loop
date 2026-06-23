@@ -12,7 +12,7 @@ class Game:
     self.id        = game_id
     self.owner_id  = owner_id
     self.user_ids  = [owner_id]
-    self.chat_ids: list[int]  = [] 
+    self.chat_ids: list[int]  = [] #Session ids
 
     # Game
     self.type = None
@@ -394,12 +394,6 @@ class Game:
     self.round_report += mini_report
 
     return mini_report
-
-  def get_player_by_id(self, id: int):
-    return next((p for p in self.players if p.id == id), None)
-  
-  def remove_player(self, id: int):
-    self.players = [p for p in self.players if p.id != id]
   
   def round_result(self, rewrite = False):
     if self.round_result_text and not rewrite:
@@ -511,3 +505,9 @@ class Game:
     # State
     self.state = GameState.SETUP
     self.turn_index = 0
+
+  def get_player_by_id(self, id: int):
+    return next((p for p in self.players if p.id == id), None)
+  
+  def remove_player(self, id: int):
+    self.players = [p for p in self.players if p.id != id]

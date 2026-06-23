@@ -17,6 +17,10 @@ class Category:
 
   created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
+  def __post_init__(self):
+    if not self.id:
+      self.generate_id()
+
   @property
   def size(self):
     return len(self.words)

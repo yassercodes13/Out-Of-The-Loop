@@ -3,6 +3,7 @@ from enum import Enum
 class GameState(str, Enum):
   SETUP = "setup"
   CATEGORY_SETTINGS = "category_settings"
+  MODE_SETTINGS = "mode_settings"
   INFORM = "inform"
   QUESTION = "question"
   VOTE = "vote"

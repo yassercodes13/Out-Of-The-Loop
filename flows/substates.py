@@ -19,11 +19,18 @@ class SetupSubstate(str, Enum):
 # CATEGORY SETTINGS
 # ----------------------
 class CategorySettingsSubstate(str, Enum):
-  MAIN = "main"                          # Main category settings screen
+  MAIN = "category_main"                          # Main category settings screen
   DELETE = "delete"                      # Deleting a category (only for user generated categories)
   CREATE = "create"                      # Creating a new category
   VIEW = "view"                          # Viewing category words
   TOGGLE = "toggle"        # Toggling category inclusion in random selection
+
+# ----------------------
+# MODE SETTINGS
+# ----------------------
+class ModeSettingsSubstate(str, Enum):
+  MAIN = "mode_main"                          # Main mode settings screen
+
 
 # ----------------------
 # INFORM
@@ -113,6 +120,7 @@ class ResultsSubstate(str, Enum):
 AnySubstate = Union[
   SetupSubstate,
   CategorySettingsSubstate,
+  ModeSettingsSubstate,
   InformSubstate,
   QuestionSubstate,
   VoteSubstate,

@@ -1,12 +1,12 @@
-from flows.category_settings import handle_category_settings
-from flows.substates import AnyCategorySettingsSubstate
-from handlers.utils import *
-from flows.msg_utils import *
-from telegram import Update
+from telegram import InlineKeyboardButton, Update
+from telegram.ext import ContextTypes
+from flows.mode_settings import handle_mode_settings
 from models.game import Game
 from models.session import Session
 from flows.states import GameState
-from telegram.ext import ContextTypes
+from flows.substates import AnyCategorySettingsSubstate, ModeSettingsSubstate
+from flows.category_settings import handle_category_settings
+from flows.msg_utils import edit_message
 from flows.setup import handle_setup
 from flows.vote import handle_voting
 from flows.reveal import handle_reveal
@@ -15,9 +15,10 @@ from flows.inform import handle_informing
 from flows.question import handle_questioning
 from flows.vote_words import handle_vote_words
 from flows.guess_word import handle_guess_word
-from data.runtime_manager import terminate_game
 from flows.guess_teams import handle_guess_teams
 from flows.guess_outsider import handle_guess_outsider
+from handlers.utils import get_user_game
+from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 
 async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Game = None, session:Session = None):
   state_changed = False
@@ -35,34 +36,19 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
     game = create_game(user_id = user.id, username = user.username)
     session = set_session(chat_id = chat_id, message_id = message_id, game_id = game.id, user_id = user.id, bot = context.bot)
     game.state = GameState.SETUP
-
-  elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate):
     
-    if data == "e:done":
-      buttons = [
-        [InlineKeyboardButton("Categories", callback_data = "e:categories")],
-        [InlineKeyboardButton("Done", callback_data = f"e:done")]
-      ]
-
-      if session.game_substate is None:
-        await edit_message(session, text = "Settings Saved!")
-        terminate_session(session = session)
-    
-      else:
-        await edit_message(session, text = "Choose what you want to edit", buttons = buttons)
-        session.game_substate = None
-    
-    elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":
-      state_changed = await handle_category_settings(update, game, session)
-
+    state_changed = await handle_setup(update, game, session)
 
   # --- route to correct flow ---
-  if game:
+  elif game:
     if game.state == GameState.SETUP:
       state_changed = await handle_setup(update, game, session)
 
     elif game.state == GameState.CATEGORY_SETTINGS:
       state_changed = await handle_category_settings(update, game, session)
+
+    elif game.state == GameState.MODE_SETTINGS:
+      state_changed = await handle_mode_settings(update, game, session)
 
     elif game.state == GameState.INFORM:
       state_changed = await handle_informing(update, game, session)
@@ -90,6 +76,29 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
 
     elif game.state == GameState.RESULTS:
       state_changed = await handle_results(update, game, session)
+
+  elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate) or (session.game_substate == ModeSettingsSubstate.MAIN):
+    
+    if data == "e:done":
+      buttons = [
+        [InlineKeyboardButton("Categories", callback_data = "e:categories")],
+        [InlineKeyboardButton("Modes", callback_data = "e:modes")],
+        [InlineKeyboardButton("Done", callback_data = "e:done")]
+      ]
+
+      if session.game_substate is None:
+        await edit_message(session, text = "Settings Saved!")
+        terminate_session(session = session)
+    
+      else:
+        await edit_message(session, text = "Choose what you want to edit", buttons = buttons)
+        session.game_substate = None
+
+    elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":
+      state_changed = await handle_category_settings(update, game, session)
+  
+    elif session.game_substate == ModeSettingsSubstate.MAIN or data == "e:modes":
+      state_changed = await handle_mode_settings(update, game, session)
 
   # --- reroute on state change ---
   if state_changed:

@@ -17,7 +17,7 @@ async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will
 
   keyboard = [
     [InlineKeyboardButton("Start a new game", callback_data = 's:setup_game')],
-    [InlineKeyboardButton("View game rules", callback_data = 'help')],
+    [InlineKeyboardButton("View game rules", callback_data = 'help')], #Not applied yet, deosn't even have a prefix
   ]
   
   await context.bot.send_message(
@@ -87,7 +87,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   msg = await context.bot.send_message(
     chat_id=update.effective_chat.id,
     text=(
-      "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+      "Input players' names who will play on this phone by replying to this message\n"
       "Names should be separated by spaces or each on a line.\n"
       f"The game has room for {slots} players."
     ),
@@ -108,7 +108,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await broadcast_message(
     game = game, mode = "edit",
     text = (
-      "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+      "Input players' names who will play on this phone by replying to this message\n"
       "Names should be separated by spaces or each on a line.\n"
       f"game has room for {slots} players"
     ),
@@ -117,7 +117,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
 async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update) # Ensures user
+  user, game = get_user_game(update)
   
   if not await check_game(update, context, game):
     return
@@ -143,7 +143,7 @@ async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await edit_message(session, text, buttons)
 
 async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update) # Ensures user
+  user, game = get_user_game(update)
   
   if not await check_game(update, context, game):
     return
@@ -152,11 +152,13 @@ async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await send_message(session, text = session.text, buttons = session.build_buttons(), parse_mode = session.parse_mode)
 
 async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  message = update.effective_message
   if update.message:
-    await update.message.delete()
+    message = update.message
   elif update.callback_query:
-    await update.callback_query.message.delete()
-
+    message = update.callback_query.message
+  await message.delete()
+  
 async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = get_user_game(update)
   
@@ -181,7 +183,7 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     terminate_game(game)
     return
   else:
-    pass #should do something 
+    pass #should do something TODO
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = get_user_game(update)
@@ -198,6 +200,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "Choose what you want to edit",
     reply_markup = InlineKeyboardMarkup([
       [InlineKeyboardButton("Categories", callback_data = "e:categories")],
+      [InlineKeyboardButton("Modes", callback_data = "e:modes")],
       [InlineKeyboardButton("Done", callback_data = f"e:done")]
     ])
   )
@@ -214,7 +217,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = get_user_game(update)
   args = context.args
 
-  # 🟡 No message
+  # No message
   if not args:
     await update.message.reply_text(
       "Usage:\n/broadcast <message>\n\nExample:\n/broadcast hurry up!"
@@ -227,7 +230,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
   message_text = " ".join(args)
 
 
-  # 🔥 Send to all sessions in game except sender
+  # Send to all sessions in game except sender
   sender_session = get_session_of_user(user.id, user.username)
   for cid in game.chat_ids:
     session = get_session_of_chat(cid)
@@ -275,6 +278,8 @@ reset_handler = CommandHandler('restart', restart_game)
 start_new_game_handler = CommandHandler('new', start_new_game)
 edit_settings_handler = CommandHandler('settings', settings)
 broadcast_handler = CommandHandler(["broadcast", "bc"], broadcast)
+
+#Spical handlers for callback queries with no prefix, these are not routed through the game router
 help_callback_handler = CallbackQueryHandler(help, pattern='help')
 del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')
 

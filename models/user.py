@@ -10,11 +10,9 @@ class User:
     self.random_modes = [m for m in GameMode if m != GameMode.RANDOM]
     self.random_categories: list[Category] = [cat for cat in default_categories]
     self.generated_categories: list[Category] = []
-    self.least_random = 4
+    self._min_players_for_random = 4
 
-  def set_least_random(self):
-    if len(self.random_modes) < 2:
-      self.least_random = 4
-
+  @property
+  def min_players_for_random(self):
     min_vals = sorted(m.min_players for m in self.random_modes)
-    self.least_random = min_vals[1]
+    return min_vals[1]

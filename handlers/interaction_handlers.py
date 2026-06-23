@@ -14,7 +14,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   session, game = get_session_game(update)
 
-  is_starting_game = data == "s:setup_game"
+  is_starting_game = (data == "s:setup_game")
   
   if not is_active(update) and not is_starting_game:
     await query.answer(text = "This is not Active anymore.")
@@ -26,7 +26,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
   session, game = get_session_game(update)
   if not is_active(update):
-    if game and session and session.game_substate == SetupSubstate.INPUT_NAMES:
+    if game and session:
+      #The user replyed to the wrong message, but the game is still active
       await update.effective_chat.send_message(text = "This is not the right message.\nTry /game to see the active game.")
     return
 

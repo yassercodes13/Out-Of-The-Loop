@@ -32,7 +32,7 @@ class Session:
     
     self.parse_mode = parse_mode
 
-  def copy_ui(self, session):
+  def copy_ui(self, session: "Session"):
     self.text = session.text
     self.raw_markup = [row[:] for row in session.raw_markup]
     self.parse_mode = session.parse_mode

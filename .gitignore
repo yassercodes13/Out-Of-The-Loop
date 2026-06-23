@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.idea/
+.vscode/
+dumper.py
+project_dump.txt

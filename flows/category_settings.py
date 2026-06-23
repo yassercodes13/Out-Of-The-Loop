@@ -20,15 +20,12 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     game.state = GameState.SETUP
     session.game_substate = SetupSubstate.CHOOSE_CATEGORY
     return True
-  
-  elif session.game_substate == CategorySettingsSubstate.MAIN and data == "e:done":
-    return True
 
 # --- CATEGORY SETTINGS ---
   if session.game_substate == CategorySettingsSubstate.MAIN and data == "e:categories":
     text = "What do you want to do?"
     buttons = [
-      [InlineKeyboardButton(text = "Edit Random Categories", callback_data = "e:toggle")],
+      [InlineKeyboardButton(text = "Change Random Categories", callback_data = "e:toggle")],
       [InlineKeyboardButton(text = "Create Category", callback_data = "e:create")],
       [InlineKeyboardButton(text = "Delete Category", callback_data = "e:delete")],
       [InlineKeyboardButton(text = "View Category", callback_data = "e:view")],
@@ -42,7 +39,7 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     await edit_message(session, text, buttons)
     return False
   
-  if session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.DELETE] and data and (data.startswith("e:delete") or data.startswith("e:next_cats:")):
+  elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.DELETE] and data and (data.startswith("e:delete") or data.startswith("e:next_cats:")):
     
     session.game_substate = CategorySettingsSubstate.DELETE
     if data == "e:delete" or data.startswith("e:next_cats:"):
@@ -184,7 +181,7 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       return False
     
     new_category = Category(title=title, words=words, owner_id=update.effective_user.id)
-    new_category.generate_id()  # Generate a unique ID for the category
+
     user.generated_categories.append(new_category)
     user.random_categories.append(new_category) 
 

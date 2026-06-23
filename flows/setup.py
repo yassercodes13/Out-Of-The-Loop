@@ -11,290 +11,309 @@ from config import BOT_USERNAME
 from models.category import Category
 
 
+# --- screen renderers ---
+
+async def render_players_count_screen(session: Session):
+  text = "Choose Number of players"
+  buttons = [
+    [
+      InlineKeyboardButton(text=f"{i}", callback_data=f"s:players:{i}"),
+      InlineKeyboardButton(text=f"{i+1}", callback_data=f"s:players:{i+1}")
+    ] for i in range(3, 10, 2)
+  ]
+  await edit_message(session, text, buttons)
+
+async def render_game_type_screen(session: Session):
+  text = "How will you play?"
+  buttons = [
+    [InlineKeyboardButton(text="On the same phone", callback_data = "s:game_type:single")],
+    [InlineKeyboardButton(text="On multiple phones", callback_data = "s:game_type:multiple")],
+    [InlineKeyboardButton(text="How to play with multiple phones?", callback_data="s:game_type:help")]
+  ]
+  await edit_message(session, text, buttons)
+
+async def render_choose_category_screen(session: Session, game: Game, user: User, start_idx = 0):
+  text = f"Number of rounds set: {game.num_rounds}\n\nNow choose words category:"
+  buttons = make_category_buttons(start_idx, user, game.all_categories, callback_prefix = "s:cat", show_random = True)
+  buttons.append([InlineKeyboardButton(text = "🎲 Random", callback_data='s:cat:random')])
+  buttons.append([InlineKeyboardButton(text = "⚙️ Category Settings", callback_data='e:categories')])
+  await edit_message(session, text, buttons)
+
+async def render_choose_mode_screen(session: Session, user: User, category_info = ""):
+  text = f"{category_info}Now choose game mode:"
+  buttons = [
+    [InlineKeyboardButton(
+      text = mode.label + (f" ({mode.min_players}{" R" if mode in user.random_modes else ""})"),
+      callback_data=f's:mode:{mode.value}')
+    ] for mode in GameMode if mode != GameMode.RANDOM
+  ]
+  buttons.append([InlineKeyboardButton(text = f"🎲 Random ({user.min_players_for_random})", callback_data=f's:mode:{GameMode.RANDOM.value}')])
+  buttons.append([InlineKeyboardButton(text = "⚙️ Edit Random", callback_data=f'e:modes')])
+  await edit_message(session, text, buttons)
+
+
+# --- dispatch ---
+
 async def handle_setup(update: Update, game: Game, session: Session):
   query = update.callback_query
   data = query.data if query else None
 
-  if session.game_substate is None and query and query.data:
+  if session.game_substate is None and query and data:
     session.game_substate = SetupSubstate.PLAYERS_COUNT
-    
-    text = "Choose Number of players"
-    buttons = [
-      [
-        InlineKeyboardButton(text=f"{i}", callback_data=f"s:players:{i}"),
-        InlineKeyboardButton(text=f"{i+1}", callback_data=f"s:players:{i+1}")
-      ] for i in range(3,10,2) 
-    ]
-
-    await edit_message(session, text, buttons)
+    await render_players_count_screen(session)
     return False
 
-  if (session.game_substate == SetupSubstate.PLAYERS_COUNT and query.data.startswith("s:players:")) or (session.game_substate == SetupSubstate.GAME_TYPE and query.data.startswith("s:game_type:select")):
-
-    if session.game_substate == SetupSubstate.PLAYERS_COUNT:
-      players_count = int(query.data.split(":")[2])
+  if session.game_substate == SetupSubstate.PLAYERS_COUNT:
+    if data.startswith("s:players:"):
+      players_count = int(data.split(":")[2])
       game.initial_players_count = players_count
 
-    text = "How will you play?"
-    buttons = [
-      [InlineKeyboardButton(text="On the same phone", callback_data = "s:game_type:single")],
-      [InlineKeyboardButton(text="On multiple phones", callback_data = "s:game_type:multiple")],
-      [InlineKeyboardButton(text="How to play with multiple phones?", callback_data="s:game_type:help")]
-    ]
-    session.game_substate = SetupSubstate.GAME_TYPE
-    await edit_message(session, text, buttons)
-    return False
-
-  # --- initialize setup ---
-  if session.game_substate == SetupSubstate.GAME_TYPE and query.data.startswith("s:game_type:"):
-    game_type = query.data.split(":")[2]
-    if game_type == "help": 
-      text = (
-        "How to play on multiple phones?\n\n"
-        "There are two main ways to play:\n\n"
-        "• Same phone\n"
-        "All players share one device and take turns.\n\n"
-        "• Each player uses their own phone\n"
-        "Everyone joins the same game using a code and plays on their own device.\n\n"
-        "•• You can also mix both:\n"
-        "For example, 5 players can play using 3 phones—some players share a device, others use their own.\n\n"
-        "More phones = Less waiting time"
-      )
-      buttons = [[InlineKeyboardButton(text="Got it!", callback_data = "s:game_type:select")]]
-      await edit_message(session, text, buttons)
+      session.game_substate = SetupSubstate.GAME_TYPE
+      await render_game_type_screen(session)
       return False
-    else:
+
+  elif session.game_substate == SetupSubstate.GAME_TYPE:
+    if data == "s:game_type:select":
+      await render_game_type_screen(session)
+      return False
+
+    if data.startswith("s:game_type:"):
+      game_type = data.split(":")[2]
+
+      if game_type == "help":
+        text = (
+          "How to play on multiple phones?\n\n"
+          "There are two main ways to play:\n\n"
+          "• Same phone\n"
+          "All players share one device and take turns.\n\n"
+          "• Each player uses their own phone\n"
+          "Everyone joins the same game using a code and plays on their own device.\n\n"
+          "•• You can also mix both:\n"
+          "For example, 5 players can play using 3 phones—some players share a device, others use their own.\n\n"
+          "More phones = Less waiting time"
+        )
+        buttons = [[InlineKeyboardButton(text="Got it!", callback_data = "s:game_type:select")]]
+        await edit_message(session, text, buttons)
+        return False
+
       game.type = game_type
       session.game_substate = SetupSubstate.INPUT_NAMES
-    
-    if game.type == "single":
-      text = (
-        "Input players' names by replying to this message\n"
-        "Names should be separated by spaces or each on a line.\n"
-        f"Player count must be {game.initial_players_count}."
-      )    
-      await edit_message(session, text)
-    elif game.type == "multiple":
-      slots = empty_slots(game)
-      text = (
-        "Share this game code with your friends so they can join:\n"
-        f"{game.id}\n\n"
-        "Or forawrd the next message to their chat\n\n"
-        "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
-        "Names should be separated by spaces or each on a line.\n"
-        f"game has room for {slots} players"
-      )
-      await edit_message(session, text)
 
-      user = get_user_by_id(session.user_id)
-      await session.bot.send_message(
-        chat_id = session.chat_id,
-        text = f"Join an out of the loop game by: {user.username}!",
-        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join", url = f"https://t.me/{BOT_USERNAME}?start={game.id}")]])
-      )
+      if game.type == "single":
+        text = (
+          "Input players' names by replying to this message\n"
+          "Names should be separated by spaces or each on a line.\n"
+          f"Player count must be {game.initial_players_count}."
+        )
+        await edit_message(session, text)
 
-    return False
-
-  # --- INPUT_NAMES: expecting a text reply ---
-  if session.game_substate == SetupSubstate.INPUT_NAMES and update.message.reply_to_message:   
-    # Players who join the game only work with the input names setup step
-    
-    player_names = update.message.text.split()
-    slots = empty_slots(game)
-
-    if game.type == "single" and not (len(player_names) == game.initial_players_count):
-      await update.message.reply_text(f"You must have {game.initial_players_count} players.")
-      return False
-    elif game.type == "multiple" and not (1 <= len(player_names) <= slots):
-      await update.message.reply_text(f"You must provide at least 1 player name and at most {slots}.")
-      return False
-    
-    session.prepare_players(player_names, game)    # Create player objects and add to session and game
-    session.game_substate = SetupSubstate.WAITING
-
-    if game.type == "multiple":
-      text = (
-        f"Players names set: {', '.join([p.name for p in session.players])}\n"
-        f"Now waiting for other players to join using the game code...\n\n"
-        f"Game Code is {game.id}\n"
-        f"Players joined: {len(game.players)}/{game.initial_players_count}"
-      )
-
-      buttons = None 
-      old_message = update.message.reply_to_message if update.message else None
-      await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
-      
-      if (len(game.players) == game.initial_players_count):
-        buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
-        owner_session = get_session_of_owner(game = game)
-        await edit_message(owner_session, "All players joined!", buttons)
-        # Removing sessions that didn't add players when player count is full
-        for cid in game.chat_ids: 
-          session = get_session_of_chat(cid)
-          if session.game_substate == SetupSubstate.INPUT_NAMES:
-            terminate_session(session)
-
-      else:
-        await broadcast_message(
-          game = game, mode = "edit",
-          text = (
-            f"Now waiting for other players to join using the game code...\n\n"
-            f"Game Code is {game.id}\n\n"
-            f"Players joined: {len(game.players)}/{game.initial_players_count}"
-          ),
-          exclude_chat_ids = [session.chat_id],
-          only_with_substate = SetupSubstate.WAITING,
-          )
+      elif game.type == "multiple":
         slots = empty_slots(game)
-        await broadcast_message(
-          game = game, mode = "edit",
-          text = (
-            "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
-            "Names should be separated by spaces or each on a line.\n"
-            f"game has room for {slots} players"
-          ),
-          exclude_chat_ids = [session.chat_id],
-          only_with_substate = SetupSubstate.INPUT_NAMES,
-          )
+        text = (
+          "Share this game code with your friends so they can join:\n"
+          f"{game.id}\n\n"
+          "Or forawrd the next message to their chat\n\n"
+          "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+          "Names should be separated by spaces or each on a line.\n"
+          f"game has room for {slots} players"
+        )
+        await edit_message(session, text)
+
+        user = get_user_by_id(session.user_id)
+        await session.bot.send_message(
+          chat_id = session.chat_id,
+          text = f"Join an out of the loop game by: {user.username}!",
+          reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join", url = f"https://t.me/{BOT_USERNAME}?start={game.id}")]])
+        )
 
       return False
-    
-    elif game.type == "single":
-      text = f"Players names set: {', '.join([p.name for p in session.players])}"
-      buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
-      
-      
-      old_message = update.message.reply_to_message if update.message else None
-      await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
+
+  elif session.game_substate == SetupSubstate.INPUT_NAMES:
+    if update.message and update.message.reply_to_message:
+      # Players who join the game only work with the input names setup step
+      player_names = update.message.text.split()
+      slots = empty_slots(game)
+
+      if game.type == "single" and not (len(player_names) == game.initial_players_count):
+        await update.message.reply_text(f"You must have {game.initial_players_count} players.")
+        return False
+      elif game.type == "multiple" and not (1 <= len(player_names) <= slots):
+        await update.message.reply_text(f"You must provide at least 1 player name and at most {slots}.")
+        return False
+
+      session.prepare_players(player_names, game)    # Create player objects and add to session and game
+      session.game_substate = SetupSubstate.WAITING
+
+      if game.type == "multiple":
+        text = (
+          f"Players names set: {', '.join([p.name for p in session.players])}\n"
+          f"Now waiting for other players to join using the game code...\n\n"
+          f"Game Code is {game.id}\n"
+          f"Players joined: {len(game.players)}/{game.initial_players_count}"
+        )
+
+        buttons = None
+        old_message = update.message.reply_to_message if update.message else None
+        await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
+
+        if (len(game.players) == game.initial_players_count):
+          buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
+          owner_session = get_session_of_owner(game = game)
+          await edit_message(owner_session, "All players joined!", buttons)
+          # Removing sessions that didn't add players when player count is full
+          for cid in game.chat_ids:
+            session = get_session_of_chat(cid)
+            if session.game_substate == SetupSubstate.INPUT_NAMES:
+              terminate_session(session)
+
+        else:
+          await broadcast_message(
+            game = game, mode = "edit",
+            text = (
+              f"Now waiting for other players to join using the game code...\n\n"
+              f"Game Code is {game.id}\n\n"
+              f"Players joined: {len(game.players)}/{game.initial_players_count}"
+            ),
+            exclude_chat_ids = [session.chat_id],
+            only_with_substate = SetupSubstate.WAITING,
+            )
+          slots = empty_slots(game)
+          await broadcast_message(
+            game = game, mode = "edit",
+            text = (
+              "Input players' names who will play on this phone (could be just your name) by replying to this message\n"
+              "Names should be separated by spaces or each on a line.\n"
+              f"game has room for {slots} players"
+            ),
+            exclude_chat_ids = [session.chat_id],
+            only_with_substate = SetupSubstate.INPUT_NAMES,
+            )
+
+        return False
+
+      elif game.type == "single":
+        text = f"Players names set: {', '.join([p.name for p in session.players])}"
+        buttons = [[InlineKeyboardButton(text="Continue", callback_data='s:all_joined')]]
+
+        old_message = update.message.reply_to_message if update.message else None
+        await send_message(session, text, buttons, old_message = old_message, delete_old_message = True)
+        return False
+
+  elif session.game_substate == SetupSubstate.WAITING:
+    if query and data == "s:all_joined":  # Only game owner reaches this
+      global_text = "All players joined\nWaiting for the game creator to finish setup."
+      await broadcast_message(game = game, mode = "edit", text = global_text, exclude_chat_ids = [session.chat_id])
+
+      game.num_rounds = len(game.players)   # Intialize the rounds count
+
+      text = (
+        "Now adjust number of rounds as you wish (1 to 25).\n"
+        f"Current number of rounds: {game.num_rounds}"
+      )
+
+      buttons = [
+        [
+          InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
+          InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
+        ],
+        [
+          InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
+          InlineKeyboardButton("-2", callback_data='s:rounds:-2')
+        ],
+        [
+          InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
+          InlineKeyboardButton("-5", callback_data='s:rounds:-5')
+        ],
+        [
+          InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
+          InlineKeyboardButton("-10", callback_data='s:rounds:-10')
+        ],
+        [InlineKeyboardButton("Perfect!", callback_data='s:rounds:done')]
+      ]
+
+      await edit_message(session, text, buttons)
+      session.game_substate = SetupSubstate.CHOOSE_ROUNDS
       return False
-  
-  if session.game_substate == SetupSubstate.WAITING and query and data == "s:all_joined": #Only game owner reaches this
-    global_text = "All players joined\nWaiting for the game creator to finish setup."
-    await broadcast_message(game = game, mode = "edit", text = global_text, exclude_chat_ids = [session.chat_id])
-    
-    game.num_rounds = len(game.players)   # Intialize the rounds count
 
-    text = (
-      "Now adjust number of rounds as you wish (1 to 25).\n"
-      f"Current number of rounds: {game.num_rounds}"
-    )
+  elif session.game_substate == SetupSubstate.CHOOSE_ROUNDS:
+    if data.startswith("s:rounds:") and data != "s:rounds:done":
+      rounds_count = game.num_rounds
+      rounds_count += int(data.split(':')[2])
+      rounds_count = max(min(rounds_count, 25), 1)
 
-    buttons = [
-      [
-        InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
-        InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
-      ],
-      [
-        InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
-        InlineKeyboardButton("-2", callback_data='s:rounds:-2')
-      ],
-      [
-        InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
-        InlineKeyboardButton("-5", callback_data='s:rounds:-5')
-      ],
-      [
-        InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
-        InlineKeyboardButton("-10", callback_data='s:rounds:-10')
-      ],
-      [InlineKeyboardButton("Perfect!", callback_data='s:rounds:done')]
-    ]
+      if game.num_rounds == rounds_count:  # Nothing to update
+        return False
 
-    await edit_message(session, text, buttons)
-    session.game_substate = SetupSubstate.CHOOSE_ROUNDS
+      game.num_rounds = rounds_count
 
-    return False
+      text = f"Current number of rounds: {game.num_rounds}"
 
+      buttons = [
+        [
+          InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
+          InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
+        ],
+        [
+          InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
+          InlineKeyboardButton("-2", callback_data='s:rounds:-2')
+        ],
+        [
+          InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
+          InlineKeyboardButton("-5", callback_data='s:rounds:-5')
+        ],
+        [
+          InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
+          InlineKeyboardButton("-10", callback_data='s:rounds:-10')
+        ],
+      ]
 
-  # --- CHOOSE_ROUNDS ---
-  if session.game_substate == SetupSubstate.CHOOSE_ROUNDS and query.data.startswith("s:rounds:") and query.data != "s:rounds:done":
-    rounds_count = game.num_rounds
-    rounds_count += int(query.data.split(':')[2])
-    rounds_count = max(min(rounds_count, 25), 1)
-    
-    if game.num_rounds == rounds_count: # Nothing to update
+      new_buttons = []
+      for row in buttons:
+        new_row = []
+        for btn in row:
+          if "+" in btn.text and rounds_count == 25:
+            continue
+          if "-" in btn.text and rounds_count == 1:
+            continue
+          new_row.append(btn)
+        if new_row:
+          new_buttons.append(new_row)
+
+      new_buttons.append([InlineKeyboardButton("Perfect!", callback_data='s:rounds:done')])
+
+      await edit_message(session, text, new_buttons)
       return False
-    
-    game.num_rounds = rounds_count
 
-    text = (
-      f"Current number of rounds: {game.num_rounds}"
-    )
+    if data == "s:rounds:done":
+      user = get_user_by_id(update.effective_user.id)
+      game.all_categories = user.generated_categories + default_categories
+      await render_choose_category_screen(session, game, user)
+      session.game_substate = SetupSubstate.CHOOSE_CATEGORY
+      return False
 
-    buttons = [
-      [
-        InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
-        InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
-      ],
-      [
-        InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
-        InlineKeyboardButton("-2", callback_data='s:rounds:-2')
-      ],
-      [
-        InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
-        InlineKeyboardButton("-5", callback_data='s:rounds:-5')
-      ],
-      [
-        InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
-        InlineKeyboardButton("-10", callback_data='s:rounds:-10')
-      ],
-    ]
-    
-    new_buttons = []
+  elif session.game_substate == SetupSubstate.CHOOSE_CATEGORY:
+    if data == "e:categories":
+      game.state = GameState.CATEGORY_SETTINGS
+      session.game_substate = None
+      return True
 
-    for row in buttons:
-      new_row = []
-      for btn in row:
-        if "+" in btn.text and rounds_count == 25:
-          continue
-        if "-" in btn.text and rounds_count == 1:
-          continue
-        new_row.append(btn)
-      if new_row:
-        new_buttons.append(new_row)
+    if data == "s:choose_category" or data.startswith("s:next_cats:"):
+      user = get_user_by_id(update.effective_user.id)
+      game.all_categories = user.generated_categories + default_categories
 
-    new_buttons.append([InlineKeyboardButton("Perfect!", callback_data='s:rounds:done')])
-    
-    await edit_message(session, text, new_buttons)
-    return False
+      start_idx = 0
+      if data.startswith("s:next_cats:"):
+        start_idx = int(data.split(':')[2])
+        start_idx = max(0, min(start_idx, len(game.all_categories)-1))
 
-  # --- CHOOSE CATEGORY ---
-  if (session.game_substate == SetupSubstate.CHOOSE_ROUNDS and data == ("s:rounds:done")) or session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data and (data == "s:choose_category" or data.startswith("s:next_cats:")):
+      await render_choose_category_screen(session, game, user, start_idx)
+      session.game_substate = SetupSubstate.CHOOSE_CATEGORY
+      return False
 
-    user = get_user_by_id(update.effective_user.id)
-    game.all_categories = user.generated_categories + default_categories 
-    text = f"Number of rounds set: {game.num_rounds}\n\nNow choose words category:"
-    
-    start_idx = 0
+    if data.startswith("s:cat:"):
+      user = get_user_by_id(update.effective_user.id)
 
-    if query.data and query.data.startswith("s:next_cats:"):
-      start_idx = int(query.data.split(':')[2])
-      start_idx = max(0, min(start_idx, len(game.all_categories)-1))
-
-    buttons = make_category_buttons(start_idx, user, game.all_categories, callback_prefix = "s:cat", show_random = True)
-    buttons.append([InlineKeyboardButton(text = "🎲 Random", callback_data='s:cat:random')])
-    buttons.append([InlineKeyboardButton(text = "⚙️ Category Settings", callback_data='e:categories')])
-
-    
-    await edit_message(session, text, buttons)
-    session.game_substate = SetupSubstate.CHOOSE_CATEGORY
-    return False
-
-  # --- CATEGORY SETTINGS ---
-  if session.game_substate == SetupSubstate.CHOOSE_CATEGORY and data == "e:categories":
-    game.state = GameState.CATEGORY_SETTINGS
-    session.game_substate = None
-    return True
-    
-
-  # --- CHOOSE_CATEGORY ---
-  if (session.game_substate == SetupSubstate.CHOOSE_CATEGORY and query.data.startswith("s:cat:")) or (session.game_substate == SetupSubstate.EDIT_RANDOM_MODE and query.data.startswith("s:choose_mode")):
-    
-    user = get_user_by_id(update.effective_user.id)
-
-    # If coming from edit_random_mode, don't update category, just go to mode selection
-    category_info = ""
-    if query.data.startswith("s:cat:"):
-      category_idx = query.data.split(':')[2]
+      category_idx = data.split(':')[2]
       if category_idx != "random":
         category = game.all_categories[int(category_idx)]
       else:
@@ -305,95 +324,61 @@ async def handle_setup(update: Update, game: Game, session: Session):
       title = "Random" if category is None else category.title
       category_info = f"Words category set: {title}\n\n"
 
-    # Mode selection
-    text = f"{category_info}Now choose game mode:"
-    buttons = [
-      [InlineKeyboardButton(
-        text = mode.label + (f" ({mode.min_players}{" R" if mode in user.random_modes else ""})"),
-        callback_data=f's:mode:{mode.value}')
-      ] for mode in GameMode if mode != GameMode.RANDOM
-    ]
-    buttons.append([InlineKeyboardButton(text = f"🎲 Random ({user.least_random})", callback_data=f's:mode:{GameMode.RANDOM.value}')])
-    buttons.append([InlineKeyboardButton(text = "⚙️ Edit Random", callback_data=f's:edit_random')])
+      await render_choose_mode_screen(session, user, category_info)
+      session.game_substate = SetupSubstate.CHOOSE_MODE
+      return False
 
-    await edit_message(session, text, buttons)
-    session.game_substate = SetupSubstate.CHOOSE_MODE
-    return False
+  elif session.game_substate == SetupSubstate.CHOOSE_MODE:
+    if data == "e:modes":
+      game.state = GameState.MODE_SETTINGS
+      session.game_substate = None
+      return True
 
-  # --- EDIT_RANDOM_MODE ---
-  if (session.game_substate == SetupSubstate.CHOOSE_MODE and data == "s:edit_random") or (session.game_substate == SetupSubstate.EDIT_RANDOM_MODE and query.data.startswith("s:toggle_random:")):
-    session.game_substate = SetupSubstate.EDIT_RANDOM_MODE
-    user = get_user_by_id(update.effective_user.id)
+    if data == "s:choose_mode":
+      user = get_user_by_id(update.effective_user.id)
+      category_info = f"Words category set: {game.category.title if game.category else 'Random'}\n\n"
+      await render_choose_mode_screen(session, user, category_info)
+      session.game_substate = SetupSubstate.CHOOSE_MODE
+      return False
 
-    if query.data.startswith("s:toggle_random:"):
-      mode_txt = query.data.split(':')[2]
+    if data.startswith("s:mode:"):
+      mode_txt = data.split(':')[2]
       mode = GameMode(mode_txt)
 
-      if mode in user.random_modes:
-        if len(user.random_modes) <= 2:
-          await query.answer("You must have at least 2 modes selected for random mode.", show_alert=True)
+      if mode == GameMode.RANDOM:
+        user = get_user_by_id(update.effective_user.id)
+        if user.min_players_for_random > len(game.players):
+          await query.answer(
+            f"Random mode requires at least {user.min_players_for_random} players based on your current random mode settings.\nGame has {len(game.players)} players.",
+            show_alert=True
+          )
           return False
-        user.random_modes.remove(mode)
-      else:
-        user.random_modes.append(mode)
-      user.set_least_random() # Update least_random based on current random_modes
 
-    text = (
-      "The modes you select here will be the only ones that show up when you choose random mode.\n"
-      "You have to select at least 2 modes\n\n"
-      f"To play with the current list of modes you must have at least {user.least_random} players."
-    )
-
-    buttons = [
-      [InlineKeyboardButton(
-        text = mode.label + (" ✔" if mode in user.random_modes else " ✘"),
-        callback_data=f's:toggle_random:{mode.value}'
-      )] for mode in GameMode if mode != GameMode.RANDOM
-    ]
-    buttons.append([InlineKeyboardButton(text = "Back to mode selection", callback_data=f's:choose_mode')])
-
-    await edit_message(session, text, buttons)
-    return False
-
-  # --- CHOOSE_MODE ---
-  if session.game_substate == SetupSubstate.CHOOSE_MODE and query.data.startswith("s:mode:"):
-    mode_txt = query.data.split(':')[2]
-    mode = GameMode(mode_txt)
-
-    # validate min players
-    if mode == GameMode.RANDOM:
-      user = get_user_by_id(update.effective_user.id)
-      if user.least_random > len(game.players):
+      if mode.min_players > len(game.players):
         await query.answer(
-          f"Random mode requires at least {user.least_random} players based on your current random mode settings.\nGame has {len(game.players)} players.",
+          f"This mode requires at least {mode.min_players} players. Game has {len(game.players)}",
           show_alert=True
         )
         return False
 
-    if mode.min_players > len(game.players):
-      await query.answer(
-        f"This mode requires at least {mode.min_players} players. Game has {len(game.players)}",
-        show_alert=True
-      )
+      if mode == GameMode.RANDOM:
+        user = get_user_by_id(update.effective_user.id)
+        game.random_mode_options = user.random_modes
+
+      game.mode = mode
+      text = f'Game mode set: {mode.label}\n\nAll set! Click below to start the game.'
+      buttons = [
+        [InlineKeyboardButton("Start Game", callback_data='g:start_round')]
+      ]
+
+      await edit_message(session, text, buttons)
+      session.game_substate = SetupSubstate.FINISHED
       return False
 
-    if mode == GameMode.RANDOM:
-      user = get_user_by_id(update.effective_user.id)
-      game.random_mode_options = user.random_modes
-    
-    game.mode = mode
-    text=f'Game mode set: {mode.label}\n\nAll set! Click below to start the game.'
-    buttons = [
-      [InlineKeyboardButton("Start Game", callback_data='g:start_round')]
-    ]
-    
-    await edit_message(session, text, buttons)
-    session.game_substate = SetupSubstate.FINISHED
-    return False
+  elif session.game_substate == SetupSubstate.FINISHED:
+    if data == "g:start_round":
+      game.state = GameState.INFORM
+      session.game_substate = None
+      return True
 
-  if session.game_substate == SetupSubstate.FINISHED and data == "g:start_round":
-    game.state = GameState.INFORM
-    session.game_substate = None
-    return True
-  
   return False
