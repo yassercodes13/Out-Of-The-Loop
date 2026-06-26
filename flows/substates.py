@@ -12,7 +12,6 @@ class SetupSubstate(str, Enum):
   CHOOSE_ROUNDS = "choose_rounds"
   CHOOSE_CATEGORY = "choose_category"
   CHOOSE_MODE = "choose_mode"
-  EDIT_RANDOM_MODE = "edit_random_mode"
   FINISHED = "finished"
 
 # ----------------------
@@ -43,7 +42,7 @@ class InformSubstate(str, Enum):
 
 
 # ----------------------
-# QUESTIOn
+# QUESTION
 # ----------------------
 class QuestionSubstate(str, Enum):
   ASK = "ask"                        # Main loop of asking
@@ -51,7 +50,7 @@ class QuestionSubstate(str, Enum):
 
 
 # ----------------------
-# VOTe
+# VOTE
 # ----------------------
 class VoteSubstate(str, Enum):
   SELECT = "select"                  # Choosing who to vote
@@ -81,8 +80,6 @@ class GuessWordSubstate(str, Enum):
 # ----------------------
 class GuessOutsiderSubstate(str, Enum):
   CHOOSING = "choosing"            # Picking suspect
-  RESULT = "result"                # Showing result
-  WAITING = "waiting"
 
 
 # ----------------------
@@ -91,7 +88,6 @@ class GuessOutsiderSubstate(str, Enum):
 class VoteWordsSubstate(str, Enum):
   START = "start"                
   VOTING = "voting"            
-  WAITING = "waiting"
   RESULT = "result"
 
 

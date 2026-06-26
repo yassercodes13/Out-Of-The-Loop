@@ -3,7 +3,56 @@ from flows.states import GameState
 from flows.substates import GuessTeamsSubstate
 from telegram import InlineKeyboardButton, Update
 from data.runtime_manager import get_session_of_owner
+from texts import t, b
 
+# --- screen renderers ---
+
+async def render_detective_waiting_screen(game: Game, session: Session):
+  await broadcast_message(
+    game=game, mode="edit",
+    text=t("detective_will_guess"),
+    exclude_chat_ids=[session.chat_id]
+  )
+  buttons = [[InlineKeyboardButton(text="start", callback_data="g:start")]]
+  await edit_message(session, t("your_turn_to_guess", detective_name=game.detective.name), buttons)
+
+
+async def render_guessing_screen(session: Session, game: Game):
+  detective = game.detective
+  text = t("assign_teams")
+  buttons = []
+
+  for p in game.players:
+    if p == detective:
+      continue
+    team = detective.team_guess[p.id]
+    buttons.append([
+      InlineKeyboardButton(
+        t("player_team_toggle", p_name=p.name, team=team),
+        callback_data=f"g:toggle_{p.id}"
+      )
+    ])
+
+  buttons.append([InlineKeyboardButton(b("confirm"), callback_data="g:confirm_guess")])
+  await edit_message(session, text, buttons)
+
+
+async def render_result_screen(game: Game):
+  result = game.check_detection()
+  text = t(
+    "guess_result",
+    result=result,
+    alphas=", ".join([p.name for p in game.alphas]),
+    betas=", ".join([p.name for p in game.betas])
+  )
+
+  owner_session = get_session_of_owner(game=game)
+  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  buttons = [[InlineKeyboardButton(b("vote_words"), callback_data="g:vote_words")]]
+  await edit_message(owner_session, text, buttons)
+
+
+# --- dispatch ---
 
 async def handle_guess_teams(update: Update, game: Game, session: Session):
   query = update.callback_query
@@ -15,27 +64,14 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
   if data == "g:guess_teams" and session.game_substate is None:
     game.sessions_ready = 0
 
-    # initialize guesses (only for detective session)
     detective.team_guess = {
-      p.id: "A" for p in game.players if p !=   detective
+      p.id: "A" for p in game.players if p != detective
     }
 
     session.game_substate = GuessTeamsSubstate.GUESSING
-    buttons = [[InlineKeyboardButton(text = "start", callback_data = "g:start")]]
-    # others just wait
-    set_all_substates(
-      game,
-      GuessTeamsSubstate.WAITING,
-      exclude_chat_ids=[session.chat_id]
-    )
+    set_all_substates(game, GuessTeamsSubstate.WAITING, exclude_chat_ids=[session.chat_id])
 
-    await broadcast_message(
-      game = game,
-      mode = "edit",
-      text = "The detective will now guess which team each player was in.",
-      exclude_chat_ids = [session.chat_id]
-    )
-    await edit_message(session, f"Now you will guess the teams, {game.detective.name}", buttons)
+    await render_detective_waiting_screen(game, session)
     return False
 
   # --- TOGGLE PLAYER TEAM ---
@@ -74,53 +110,13 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
   # --- RESULT SCREEN ---
 
   if session.game_substate == GuessTeamsSubstate.RESULT:
-    result = game.check_detection()
-
-    text = f"Detective got {result}\n"
-    text += "Alpha team: " + ", ".join([p.name for p in game.alphas]) + "\n"
-    text += "Beta team: " + ", ".join([p.name for p in game.betas]) + "\n"
-
-    owner_session = get_session_of_owner(game=game)
-
-    # others just see result
-    await broadcast_message(
-      game = game,
-      mode = "edit",
-      text = text,
-      exclude_chat_ids=[owner_session.chat_id]
-    )
-
-    # detective gets button
-    buttons = [[InlineKeyboardButton("Vote Words", callback_data="g:vote_words")]]
-    await edit_message(owner_session, text, buttons)
-
+    await render_result_screen(game)
     return False
 
   # --- RENDER GUESSING SCREEN (ONLY DETECTIVE) ---
 
   if session.game_substate == GuessTeamsSubstate.GUESSING:
-    text = "Assign teams:\n\n"
-    buttons = []
-
-    for p in game.players:
-      if p == detective:
-        continue
-
-      team = detective.team_guess[p.id]
-
-      buttons.append([
-        InlineKeyboardButton(
-          f"{p.name} → {team} ?",
-          callback_data=f"g:toggle_{p.id}"
-        )
-      ])
-
-    buttons.append([
-      InlineKeyboardButton("Confirm", callback_data="g:confirm_guess")
-    ])
-
-    await edit_message(session, text, buttons)
-
+    await render_guessing_screen(session, game)
     return False
 
   return False

@@ -5,7 +5,62 @@ from flows.states import GameState
 from flows.substates import InformSubstate
 from telegram import InlineKeyboardButton, Update
 from flows.msg_utils import *
+from texts import t, b
 
+# --- screen renderers ---
+
+async def render_round_info_screen(game: Game):
+  text = game.start_round()
+  buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:start_informing")]]
+  await broadcast_message(game=game, mode="edit", text=text, buttons=buttons)
+
+async def render_show_info_screen(session: Session):
+  player = session.players[session.turn_index]
+  text = player.info()
+  buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:next")]]
+  await edit_message(session, text, buttons, "HTML")
+
+async def render_end_inform_screen(session: Session, game: Game):
+  ready = game.sessions_ready >= len(game.chat_ids)
+  extra_informs = "\n".join(
+    t("seen_info_times", p_name=p.name, p_saw_info=p.saw_info)
+    for p in session.players if p.saw_info > 1
+  )
+
+  if ready:
+    owner_session = get_session_of_owner(game=game)
+    extra_informs_owner = "\n".join(
+      t("seen_info_times", p_name=p.name, p_saw_info=p.saw_info)
+      for p in owner_session.players if p.saw_info > 1
+    )
+    new_text = (extra_informs_owner + "\n\n" + t("all_ready")).strip()
+    buttons = [[InlineKeyboardButton(b("start_questioning"), callback_data="g:start_question")]]
+    await edit_message(owner_session, new_text, buttons)
+
+    if session.user_id != owner_session.user_id:
+      await edit_message(session, t("all_ready"))
+  else:
+    waiting_text = t("waiting_others_finish")
+    text = (t("all_informed") + "\n\n" + extra_informs).strip()
+    text += ("\n\n" + waiting_text)
+    await edit_message(session, text.strip())
+
+async def render_hide_info_screen(session: Session):
+  player = session.players[session.turn_index]
+  buttons = [
+    [InlineKeyboardButton(b("thats_me"), callback_data="g:show")]
+  ]
+
+  if session.turn_index > 0:
+    buttons.append([InlineKeyboardButton(b("back"), callback_data="g:back")])
+
+  if player.saw_info > 0:
+    buttons.append([InlineKeyboardButton(b("skip"), callback_data="g:next")])
+
+  text = t("give_phone_to", p_name=player.name)
+  await edit_message(session, text, buttons)
+
+# --- dispatch ---
 
 async def handle_informing(update: Update, game: Game, session: Session):
   query = update.callback_query
@@ -13,14 +68,12 @@ async def handle_informing(update: Update, game: Game, session: Session):
   
   # ---- STATE TRANSITIONS ----
 
-  if data == "g:start_round" and session.game_substate is None: # Players start playing here
+  if data == "g:start_round" and session.game_substate is None: 
     game.sessions_ready = 0
     reset_turn_indices(game)
-    text = game.start_round()
-    buttons = [[InlineKeyboardButton("Got it!", callback_data="g:start_informing")]]
-
     set_all_substates(game, InformSubstate.ROUND_INFO)
-    await broadcast_message(game = game, mode = "edit", text = text, buttons = buttons)
+    
+    await render_round_info_screen(game)
     return False
 
   elif data == "g:start_informing" and session.game_substate == InformSubstate.ROUND_INFO:
@@ -33,16 +86,12 @@ async def handle_informing(update: Update, game: Game, session: Session):
   elif data == "g:back" and session.game_substate == InformSubstate.HIDE and session.turn_index > 0:
     session.turn_index -= 1
 
-  elif  data == "g:show" and session.game_substate == InformSubstate.HIDE:
+  elif data == "g:show" and session.game_substate == InformSubstate.HIDE:
     player = session.players[session.turn_index]
     player.saw_info += 1
     session.game_substate = InformSubstate.SHOW
 
-    text = player.info()
-    parse_mode = "HTML"
-    buttons = [[InlineKeyboardButton("Got it!", callback_data="g:next")]]
-    
-    await edit_message(session, text, buttons, parse_mode)
+    await render_show_info_screen(session)
     return False
   
   elif data == "g:start_question" and session.game_substate == InformSubstate.END:
@@ -56,58 +105,12 @@ async def handle_informing(update: Update, game: Game, session: Session):
     session.game_substate = InformSubstate.END
     game.sessions_ready += 1
     
-    extra_informs = "\n".join(
-      f"{p.name} has seen their info {p.saw_info} times"
-      for p in session.players if p.saw_info > 1
-    )
-
-    ready = False
-    if game.sessions_ready >= len(game.chat_ids):
-      ready = True
-
-    waiting_text = ""
-    if not ready:
-      waiting_text = "Waiting for other players to finish..."
-    
-    text = ("All players informed!" + "\n\n" + extra_informs).strip()
-    text += ("\n\n" + waiting_text)
-    text.strip()
-
-
-    if ready:
-      text = "All players are ready!"
-      buttons = [[InlineKeyboardButton("Start Questioning", callback_data="g:start_question")]]
-      owner_session = get_session_of_owner(game=game)
-      extra_informs = "\n".join(
-        f"{p.name} has seen their info {p.saw_info} times"
-        for p in owner_session.players if p.saw_info > 1
-      )
-      new_text = (extra_informs + "\n\n" + "All players ready").strip()
-      await edit_message(owner_session, new_text, buttons)
-      if session.user_id == owner_session.user_id:
-        return False
-    
-    await edit_message(session, text)
+    await render_end_inform_screen(session, game)
     return False
 
   # ---- RENDER CURRENT STEP ----
 
   else:
-    player = session.players[session.turn_index]
     session.game_substate = InformSubstate.HIDE
-    
-    buttons = [
-      [InlineKeyboardButton("That's me!", callback_data = "g:show")]
-    ]
-
-    if session.turn_index > 0:
-      buttons.append([InlineKeyboardButton("Back", callback_data = "g:back")])
-
-    if player.saw_info > 0:
-      buttons.append([InlineKeyboardButton("Skip", callback_data = "g:next")])
-
-    text=f"Give phone to {player.name}"
-    
-    await edit_message(session, text, buttons)
-
+    await render_hide_info_screen(session)
     return False

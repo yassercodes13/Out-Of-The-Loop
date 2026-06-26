@@ -3,6 +3,61 @@ from handlers.utils import end_game
 from flows.states import GameState
 from flows.substates import ResultsSubstate
 from telegram import InlineKeyboardButton, Update
+from texts import t, b
+
+
+# --- screen renderers ---
+
+async def render_round_results_screen(session: Session, game: Game, text: str, broadcast: bool = False):
+  buttons = [[InlineKeyboardButton(b("round_report"), callback_data="g:report")]]
+  if session.user_id == game.owner_id:
+    buttons.append([InlineKeyboardButton(b("edit_score"), callback_data="g:edit_score")])
+    if game.num_rounds > game.round_number:
+      buttons.append([InlineKeyboardButton(b("next_round"), callback_data="g:start_round")])
+    else:
+      buttons.append([InlineKeyboardButton(b("extra_round"), callback_data="g:start_round")])
+    buttons.append([InlineKeyboardButton(b("end_game"), callback_data="g:end_results")])
+
+  await edit_message(session, text, buttons)
+
+  if broadcast:
+    guest_buttons = [[InlineKeyboardButton(b("round_report"), callback_data="g:report")]]
+    await broadcast_message(game=game, mode="edit", text=text, buttons=guest_buttons, exclude_chat_ids=[session.chat_id])
+
+
+async def render_round_report_screen(session: Session, game: Game):
+  buttons = [[InlineKeyboardButton(b("back"), callback_data="g:round_results")]]
+  await edit_message(session, game.round_report, buttons)
+
+
+async def render_end_game_confirm_screen(session: Session, game: Game):
+  text = game.final_result() + t("sure_end")
+  buttons = [
+    [InlineKeyboardButton(b("end_it"), callback_data="g:end_it")],
+    [InlineKeyboardButton(b("get_back"), callback_data="g:round_results")]
+  ]
+  await edit_message(session, text, buttons)
+
+
+async def render_edit_score_list_screen(session: Session, game: Game):
+  text = t("edit_score_prompt")
+  buttons = [[InlineKeyboardButton(player.name, callback_data=f"g:edit_score:{player.id}")] for player in game.players]
+  buttons.append([InlineKeyboardButton(b("done"), callback_data="g:round_results:rewrite")])
+  await edit_message(session, text, buttons)
+
+
+async def render_edit_player_score_screen(session: Session, player):
+  text = t("player_current_score", p_name=player.name, score=player.score)
+  buttons = [
+    [InlineKeyboardButton("+2", callback_data=f"g:edit_score:{player.id}:+2"), InlineKeyboardButton("-2", callback_data=f"g:edit_score:{player.id}:-2")],
+    [InlineKeyboardButton("+5", callback_data=f"g:edit_score:{player.id}:+5"), InlineKeyboardButton("-5", callback_data=f"g:edit_score:{player.id}:-5")],
+    [InlineKeyboardButton(b("another_player"), callback_data="g:edit_score")],
+    [InlineKeyboardButton(b("done"), callback_data="g:round_results:rewrite")],
+  ]
+  await edit_message(session, text, buttons)
+
+
+# --- dispatch ---
 
 async def handle_results(update: Update, game: Game, session: Session):
   query = update.callback_query
@@ -13,15 +68,14 @@ async def handle_results(update: Update, game: Game, session: Session):
     if session.game_substate is None:
       refresh_all = True
       set_all_substates(game, ResultsSubstate.ROUND_RESULTS)
-  
     session.game_substate = ResultsSubstate.ROUND_RESULTS
-  
+
   elif data == "g:report" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
     session.game_substate = ResultsSubstate.ROUND_REPORT
-  
+
   elif data == "g:end_results" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
     session.game_substate = ResultsSubstate.FINAL_RESULTS
-  
+
   elif data == "g:edit_score" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
     session.game_substate = ResultsSubstate.EDIT_SCORE
 
@@ -29,77 +83,40 @@ async def handle_results(update: Update, game: Game, session: Session):
     game.state = GameState.INFORM
     set_all_substates(game, None)
     return True
-    
+
 
   if session.game_substate == ResultsSubstate.ROUND_RESULTS and data and data.startswith("g:round_results"):
-    text = ""
-    if len(data.split(":")) > 2:
-      text = game.round_result(rewrite = True)
+    rewrite = len(data.split(":")) > 2
+    text = game.round_result(rewrite=rewrite)
+    if rewrite:
       refresh_all = True
-    else:
-      text = game.round_result(rewrite = False)
-    
-    buttons = [[InlineKeyboardButton("Round Report", callback_data="g:report")]]
-    if session.user_id == game.owner_id:
-      buttons.append([InlineKeyboardButton("Edit Score", callback_data = "g:edit_score")])
-      if game.num_rounds > game.round_number:
-        buttons.append([InlineKeyboardButton("Next Round", callback_data = "g:start_round")])
-      else:
-        buttons.append([InlineKeyboardButton("Extra Round", callback_data = "g:start_round")])
-      buttons.append([InlineKeyboardButton("End Game", callback_data = "g:end_results")])
-    
-    await edit_message(session, text, buttons)
-    
-    if refresh_all:
-      guest_buttons = [[InlineKeyboardButton(text = "Round Report", callback_data = "g:report")]]
-      await broadcast_message(game = game, mode = "edit", text = text, buttons = guest_buttons, exclude_chat_ids = [session.chat_id])
+    await render_round_results_screen(session, game, text, broadcast=refresh_all)
 
   elif session.game_substate == ResultsSubstate.ROUND_REPORT and data == "g:report":
-    text = game.round_report
-    buttons = [[InlineKeyboardButton("Back", callback_data = 'g:round_results')]]
-    
-    await edit_message(session, text, buttons)
+    await render_round_report_screen(session, game)
 
-  elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data in ["g:end_it", "g:end_results"]:
-    buttons = []
+  elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_it":
     text = game.final_result()
-    if data == "g:end_it":
-      end_game(game)
-    else:
-      buttons = [
-        [InlineKeyboardButton("End it", callback_data = "g:end_it")],
-        [InlineKeyboardButton("Get back", callback_data = "g:round_results")]
-      ]
-      text += "\nSure you want to end?"
-    
+    end_game(game)
+    await edit_message(session, text)
 
-    await edit_message(session, text, buttons)
-
+  elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_results":
+    await render_end_game_confirm_screen(session, game)
 
   elif session.game_substate == ResultsSubstate.EDIT_SCORE and data and data.startswith("g:edit_score"):
     parts = data.split(":")
-    if len(parts) < 3:  
-      text = "Tap the player you want to edit their score"
-      buttons = [[InlineKeyboardButton(player.name, callback_data = f"g:edit_score:{player.id}")] for player in game.players]
-      buttons.append([InlineKeyboardButton("Done", callback_data = "g:round_results:rewrite")])
+    if len(parts) < 3:
+      await render_edit_score_list_screen(session, game)
     else:
       player_id = int(parts[2])
-      edit = 0
       player = game.get_player_by_id(player_id)
-      
+
       if len(parts) == 4:
         edit = int(parts[3])
+        old_score = player.score
         player.score += edit
-        game.round_report += f"\nScore of {player.name} updated by owner from {player.score - edit} to {player.score}."
+        game.round_report += t("score_updated", p_name=player.name, old_score=old_score, new_score=player.score)
 
-      text = f"Current Score of {player.name}: {player.score}"
-      buttons = [
-        [InlineKeyboardButton("+2", callback_data = f"g:edit_score:{player.id}:+2"), InlineKeyboardButton("-2", callback_data = f"g:edit_score:{player.id}:-2")],
-        [InlineKeyboardButton("+5", callback_data = f"g:edit_score:{player.id}:+5"), InlineKeyboardButton("-5", callback_data = f"g:edit_score:{player.id}:-5")],
-        [InlineKeyboardButton("Another Player", callback_data = "g:edit_score")],
-        [InlineKeyboardButton("Done", callback_data = "g:round_results:rewrite")],
-      ]
-    
-    await edit_message(session, text, buttons)
+      await render_edit_player_score_screen(session, player)
 
   return False

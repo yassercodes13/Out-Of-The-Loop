@@ -18,6 +18,7 @@ from flows.guess_word import handle_guess_word
 from flows.guess_teams import handle_guess_teams
 from flows.guess_outsider import handle_guess_outsider
 from handlers.utils import get_user_game
+from texts import t, b
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 
 async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Game = None, session:Session = None):
@@ -81,17 +82,17 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
     
     if data == "e:done":
       buttons = [
-        [InlineKeyboardButton("Categories", callback_data = "e:categories")],
-        [InlineKeyboardButton("Modes", callback_data = "e:modes")],
-        [InlineKeyboardButton("Done", callback_data = "e:done")]
+        [InlineKeyboardButton(b("categories"), callback_data = "e:categories")],
+        [InlineKeyboardButton(b("modes"), callback_data = "e:modes")],
+        [InlineKeyboardButton(b("done"), callback_data = "e:done")]
       ]
 
       if session.game_substate is None:
-        await edit_message(session, text = "Settings Saved!")
+        await edit_message(session, text = t("settings_saved"), buttons = buttons)
         terminate_session(session = session)
     
       else:
-        await edit_message(session, text = "Choose what you want to edit", buttons = buttons)
+        await edit_message(session, text = t("choose_edit"), buttons = buttons)
         session.game_substate = None
 
     elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":

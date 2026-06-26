@@ -10,6 +10,7 @@ BUTTONS = {
   "got_it":             {"en": "Got it!",             "ar": "فهمت!"},
   "yes_confirm":        {"en": "Yes, confirm",        "ar": "نعم، تأكيد"},
   "no_choose_again":    {"en": "No, choose again",    "ar": "لا، اختر مجدداً"},
+  "start":              {"en": "Start",              "ar": "ابدأ"},
 
   # --- setup ---
   "start_game":         {"en": "Start Game",                       "ar": "ابدأ اللعبة"},
@@ -51,6 +52,9 @@ BUTTONS = {
   "thats_me":           {"en": "That's me!",          "ar": "أنا هو!"},
   "another_player":     {"en": "Another Player",      "ar": "لاعب آخر"},
   "get_back":           {"en": "Get back",            "ar": "رجوع"},
+  "reveal_outsider":    {"en": "Reveal Outsider",     "ar": "كشف الغريب"},
+  "reveal_detective":   {"en": "Reveal Detective",    "ar": "كشف المحقق"},
+  "reveal_teams":       {"en": "Reveal Teams",        "ar": "كشف الفرق"},
 
   # --- results ---
   "next_round":         {"en": "Next Round",          "ar": "الجولة التالية"},

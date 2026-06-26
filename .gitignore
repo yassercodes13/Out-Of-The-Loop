@@ -4,5 +4,6 @@ __pycache__/
 venv/
 .idea/
 .vscode/
+TODO.md
 dumper.py
 project_dump.txt
