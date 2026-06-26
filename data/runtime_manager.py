@@ -9,8 +9,8 @@ from data.sessions import *
 #                 Game                 #
 ########################################
 
-def create_game(user_id: int, username: str):
-  user = ensure_user(user_id = user_id, username = username)
+def create_game(user_id: int, username: str, lang: str = 'en'):
+  user = ensure_user(user_id = user_id, username = username, lang = lang)
   if user.game_id:
     terminate_game(game_id = user.game_id)
   
@@ -39,11 +39,11 @@ def terminate_game(game: Game = None, game_id: str = None):
   return active_games.pop(game.id)
 
 
-def get_game_of_user(user: User = None, user_id: int = None, username: str = None):
+def get_game_of_user(user: User = None, user_id: int = None, username: str = None, lang: str = 'en'):
   if not user:
     if not user_id or not username:
       return None
-    user = ensure_user(user_id = user_id, username = username)
+    user = ensure_user(user_id = user_id, username = username, lang = lang)
   
   if user.game_id:
     return active_games.get(user.game_id)
@@ -66,10 +66,10 @@ def get_game_of_session(session: Session = None, chat_id: int = None):
 #                 User                 #
 ########################################
 
-def ensure_user(user_id, username):
+def ensure_user(user_id, username, lang = 'en'):
   user = get_user_by_id(user_id)
   if not user:
-    user = make_user(id = user_id, username = username)
+    user = make_user(id = user_id, username = username, lang = lang)
   return user
 
 def add_user_to_game(user: User, game: Game):

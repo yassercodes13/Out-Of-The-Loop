@@ -8,4 +8,9 @@ GENERAL_TEXTS = {
     "en": "Choose what you want to edit",
     "ar": "اختر ما تريد تعديله"
   },
+
+  "language_main": {
+    "en": "Choose your language",
+    "ar": "اختر لغتك"
+  },
 }

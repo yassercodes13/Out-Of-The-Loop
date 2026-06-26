@@ -237,9 +237,9 @@ def make_category_buttons(start_idx: int, user: User, categories: list[Category]
   nav_buttons = []
   prefix = callback_prefix.split(':')[0] + ":"
   if start_idx != 0:
-    nav_buttons.append(InlineKeyboardButton(text = b("<<"), callback_data=f"{prefix}next_cats:{start_idx - 5}"))
+    nav_buttons.append(InlineKeyboardButton(text = b("prev_page"), callback_data=f"{prefix}next_cats:{start_idx - 5}"))
   if start_idx + 5 < len(categories):
-    nav_buttons.append(InlineKeyboardButton(text = b(">>"), callback_data=f"{prefix}next_cats:{start_idx + 5}"))
+    nav_buttons.append(InlineKeyboardButton(text = b("next_page"), callback_data=f"{prefix}next_cats:{start_idx + 5}"))
   buttons.append(nav_buttons)
 
   return buttons

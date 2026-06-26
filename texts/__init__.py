@@ -11,7 +11,16 @@ from texts.results import RESULTS_TEXTS
 from texts.mode_settings import MODE_SETTINGS_TEXTS
 from texts.category_settings import CATEGORY_SETTINGS_TEXTS
 from texts.general import GENERAL_TEXTS
-from texts.buttons import b
+from texts.buttons import BUTTONS
+from contextvars import ContextVar
+
+_current_lang: ContextVar[str] = ContextVar('current_lang', default = 'en')
+
+supported_langs = ['en', 'ar']
+
+def set_lang(lang: str):
+  _current_lang.set(lang)
+
 
 _all_dicts = [
   SETUP_TEXTS, INFORM_TEXTS, QUESTION_TEXTS, VOTE_TEXTS,
@@ -24,6 +33,12 @@ assert len(_all_keys) == len(set(_all_keys)), \
 
 TEXTS = {**SETUP_TEXTS, **INFORM_TEXTS, **QUESTION_TEXTS, **VOTE_TEXTS, **REVEAL_TEXTS, **GUESS_WORD_TEXTS, **GUESS_TEAMS_TEXTS, **VOTE_WORDS_TEXTS, **GUESS_OUTSIDER_TEXTS, **MODE_SETTINGS_TEXTS, **CATEGORY_SETTINGS_TEXTS, **RESULTS_TEXTS, **GENERAL_TEXTS}
 
-def t(key, lang="en", **kwargs):
+def t(key: str, **kwargs) -> str:
+  lang = _current_lang.get()
   template = TEXTS[key][lang]
+  return template.format(**kwargs) if kwargs else template
+
+def b(key: str, **kwargs) -> str:
+  lang = _current_lang.get()
+  template = BUTTONS[key][lang]
   return template.format(**kwargs) if kwargs else template

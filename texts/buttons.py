@@ -74,9 +74,9 @@ BUTTONS = {
   "prev_page":          {"en": "<<",                  "ar": "<<"},
   "next_page":          {"en": ">>",                  "ar": ">>"},
 
+  # --- language settings ---
+  "language":           {"en": "Language",            "ar": "اللغة"},
+  "language_en":        {"en": "English",             "ar": "الإنجليزية"},
+  "language_ar":        {"en": "Arabic",              "ar": "العربية"},
+
 }
-
-
-def b(key, lang="en", **kwargs):
-  template = BUTTONS[key][lang]
-  return template.format(**kwargs) if kwargs else template

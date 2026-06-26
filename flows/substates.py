@@ -30,6 +30,11 @@ class CategorySettingsSubstate(str, Enum):
 class ModeSettingsSubstate(str, Enum):
   MAIN = "mode_main"                          # Main mode settings screen
 
+# ----------------------
+# LANGUAGE SETTINGS
+# ----------------------
+class LanguageSettingsSubstate(str, Enum):
+  MAIN = "language_main"                          # Main language settings screen
 
 # ----------------------
 # INFORM

@@ -8,7 +8,7 @@ from flows.substates import SetupSubstate
 from handlers.utils import *
 
 async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will change this to proper start later...
-  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+  ensure_user(user_id = update.effective_user.id, username = update.effective_user.username, lang = get_user_lang(update))
 
   if context.args:
     await join_game(update, context)
@@ -27,7 +27,7 @@ async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):  # will
   )
 
 async def start_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user = ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+  ensure_user(user_id = update.effective_user.id, username = update.effective_user.username, lang = get_user_lang(update))
 
   keyboard = [
     [InlineKeyboardButton("Start it", callback_data = 's:setup_game')],
@@ -201,7 +201,8 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup([
       [InlineKeyboardButton("Categories", callback_data = "e:categories")],
       [InlineKeyboardButton("Modes", callback_data = "e:modes")],
-      [InlineKeyboardButton("Done", callback_data = f"e:done")]
+      [InlineKeyboardButton("Language", callback_data = "e:language")],
+      [InlineKeyboardButton("Done", callback_data = f"e:done")],
     ])
   )
 

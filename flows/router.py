@@ -4,8 +4,9 @@ from flows.mode_settings import handle_mode_settings
 from models.game import Game
 from models.session import Session
 from flows.states import GameState
-from flows.substates import AnyCategorySettingsSubstate, ModeSettingsSubstate
+from flows.substates import AnyCategorySettingsSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
 from flows.category_settings import handle_category_settings
+from flows.language_settings import handle_language_settings
 from flows.msg_utils import edit_message
 from flows.setup import handle_setup
 from flows.vote import handle_voting
@@ -18,13 +19,15 @@ from flows.guess_word import handle_guess_word
 from flows.guess_teams import handle_guess_teams
 from flows.guess_outsider import handle_guess_outsider
 from handlers.utils import get_user_game
-from texts import t, b
+from texts import set_lang, t, b
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 
 async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Game = None, session:Session = None):
   state_changed = False
   query = update.callback_query
   data = query.data if query else None
+  user = get_user_game(update)[0]
+  set_lang(user.lang)
 
   # --- init game if not set ---
   if data == "s:setup_game":
@@ -84,7 +87,8 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
       buttons = [
         [InlineKeyboardButton(b("categories"), callback_data = "e:categories")],
         [InlineKeyboardButton(b("modes"), callback_data = "e:modes")],
-        [InlineKeyboardButton(b("done"), callback_data = "e:done")]
+        [InlineKeyboardButton(b("language"), callback_data = "e:language")],
+        [InlineKeyboardButton(b("done"), callback_data = "e:done")],
       ]
 
       if session.game_substate is None:
@@ -100,6 +104,9 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
   
     elif session.game_substate == ModeSettingsSubstate.MAIN or data == "e:modes":
       state_changed = await handle_mode_settings(update, game, session)
+    
+    elif session.game_substate == LanguageSettingsSubstate.MAIN or data == "e:language":
+      state_changed = await handle_language_settings(update, session)
 
   # --- reroute on state change ---
   if state_changed:

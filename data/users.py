@@ -1,8 +1,8 @@
 #users.py
 from data.runtime import *
 
-def make_user(id: int, username :str):
-  user = User(id = id, username = username)
+def make_user(id: int, username :str, lang: str = 'en'):
+  user = User(id = id, username = username, lang = lang)
   add_user(user)
   return user
 

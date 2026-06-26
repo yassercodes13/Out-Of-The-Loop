@@ -7,7 +7,8 @@ from telegram.ext import CallbackQueryHandler, MessageHandler, filters, ContextT
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
   data = query.data if query else None
-  ensure_user(user_id = update.effective_user.id, username = update.effective_user.username)
+  
+  ensure_user(user_id = update.effective_user.id, username = update.effective_user.username, lang = get_user_lang(update)) #Ensures user exists
 
   if not data or not data.startswith(("s:", "g:", "e:")):
     return
