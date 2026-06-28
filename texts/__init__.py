@@ -10,6 +10,7 @@ from texts.guess_outsider import GUESS_OUTSIDER_TEXTS
 from texts.results import RESULTS_TEXTS
 from texts.mode_settings import MODE_SETTINGS_TEXTS
 from texts.category_settings import CATEGORY_SETTINGS_TEXTS
+from texts.game_report import GAME_REPORT_TEXTS
 from texts.general import GENERAL_TEXTS
 from texts.buttons import BUTTONS
 from contextvars import ContextVar
@@ -25,13 +26,13 @@ def set_lang(lang: str):
 _all_dicts = [
   SETUP_TEXTS, INFORM_TEXTS, QUESTION_TEXTS, VOTE_TEXTS,
   REVEAL_TEXTS, VOTE_WORDS_TEXTS, GUESS_WORD_TEXTS, GUESS_TEAMS_TEXTS,
-  GUESS_OUTSIDER_TEXTS, MODE_SETTINGS_TEXTS, CATEGORY_SETTINGS_TEXTS, RESULTS_TEXTS, GENERAL_TEXTS
+  GUESS_OUTSIDER_TEXTS, MODE_SETTINGS_TEXTS, CATEGORY_SETTINGS_TEXTS, RESULTS_TEXTS, GENERAL_TEXTS, GAME_REPORT_TEXTS
 ]
 _all_keys = [k for d in _all_dicts for k in d]
 assert len(_all_keys) == len(set(_all_keys)), \
   f"Duplicate text keys found: {[k for k in set(_all_keys) if _all_keys.count(k) > 1]}"
 
-TEXTS = {**SETUP_TEXTS, **INFORM_TEXTS, **QUESTION_TEXTS, **VOTE_TEXTS, **REVEAL_TEXTS, **GUESS_WORD_TEXTS, **GUESS_TEAMS_TEXTS, **VOTE_WORDS_TEXTS, **GUESS_OUTSIDER_TEXTS, **MODE_SETTINGS_TEXTS, **CATEGORY_SETTINGS_TEXTS, **RESULTS_TEXTS, **GENERAL_TEXTS}
+TEXTS = {**SETUP_TEXTS, **INFORM_TEXTS, **QUESTION_TEXTS, **VOTE_TEXTS, **REVEAL_TEXTS, **GUESS_WORD_TEXTS, **GUESS_TEAMS_TEXTS, **VOTE_WORDS_TEXTS, **GUESS_OUTSIDER_TEXTS, **MODE_SETTINGS_TEXTS, **CATEGORY_SETTINGS_TEXTS, **RESULTS_TEXTS, **GENERAL_TEXTS, **GAME_REPORT_TEXTS}
 
 def t(key: str, **kwargs) -> str:
   lang = _current_lang.get()

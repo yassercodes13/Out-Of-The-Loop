@@ -55,31 +55,3 @@ class Player:
   def add_up_score(self):
     self.score += self.round_score
     self.round_score = 0
-
-  
-  def info(self):
-    info_text = "info text"
-
-    if self.role in ["outsider", "insider", "spy"]:
-      info_text = (
-        f"<b>{self.name}</b>\n\n"
-        f"Your role is <tg-spoiler>{self.role}</tg-spoiler>\n"
-        f"Your word is <tg-spoiler>{self.word}</tg-spoiler>\n\n"
-        f"Current Score: {self.score}"
-      )
-    elif self.role in ["alpha", "beta"]:
-      info_text = (
-        f"<b>{self.name}</b>\n\n"
-        f"Your team is <tg-spoiler>{self.role}</tg-spoiler>\n"
-        f"Your word is <tg-spoiler>{self.word}</tg-spoiler>\n\n"
-        f"Current Score: {self.score}"
-      )
-    elif self.role == "detective":
-      info_text = (
-        f"<b>{self.name}</b>\n\n"
-        f"Your role is <tg-spoiler>{self.role}</tg-spoiler>\n"
-        f"Alpha word is <tg-spoiler>{self.alpha_word}</tg-spoiler>\n"
-        f"Beta word is <tg-spoiler>{self.beta_word}</tg-spoiler>\n\n"
-        f"Current Score: {self.score}"
-      )
-    return info_text

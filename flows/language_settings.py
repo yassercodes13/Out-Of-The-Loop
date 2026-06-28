@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, Update
 from data.users import get_user_by_id
 from models.session import Session
 from texts import t, b, set_lang, supported_langs

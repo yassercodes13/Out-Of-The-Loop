@@ -6,6 +6,45 @@ from telegram import InlineKeyboardButton, Update
 from texts import t, b
 
 
+# --- text builders (model returns structured data, we render it here) ---
+
+def render_report_text(game: Game) -> str:
+  text = t("round_report_header", round_number=game.round_number)
+  for key, kwargs in game.round_report:
+    rendered = {
+      k: t(f"role_{v}") if k == "target_role" else
+         t(f"team_{v}") if k == "team" else v
+      for k, v in kwargs.items()
+    }
+    text += t(key, **rendered)
+  return text
+
+
+def render_result_text(game: Game, rewrite: bool = False) -> str:
+  rows = game.round_result(rewrite=rewrite)
+  text = t("round_results_header")
+  for row in rows:
+    text += t("round_result_row",
+      arrow = row["arrow"],
+      name  = row["name"],
+      role  = t(f"role_{row['role']}"),
+      score = row["score"],
+    )
+  return text
+
+
+def render_final_result_text(game: Game) -> str:
+  data = game.final_result()
+  if data["tie"]:
+    return t("final_result_tie", score=data["winning_score"])
+  text  = t("final_result_winners_plural") if len(data["winners"]) > 1 else t("final_result_winner_single")
+  text += "\n".join(f"👑 {name}" for name in data["winners"])
+  text += "\n\n"
+  text += t("final_result_losers_plural") if len(data["losers"]) > 1 else t("final_result_loser_single")
+  text += "\n".join(f"😭 {name}" for name in data["losers"])
+  return text
+
+
 # --- screen renderers ---
 
 async def render_round_results_screen(session: Session, game: Game, text: str, broadcast: bool = False):
@@ -27,13 +66,13 @@ async def render_round_results_screen(session: Session, game: Game, text: str, b
 
 async def render_round_report_screen(session: Session, game: Game):
   buttons = [[InlineKeyboardButton(b("back"), callback_data="g:round_results")]]
-  await edit_message(session, game.round_report, buttons)
+  await edit_message(session, render_report_text(game), buttons)
 
 
 async def render_end_game_confirm_screen(session: Session, game: Game):
-  text = game.final_result() + t("sure_end")
+  text = render_final_result_text(game) + t("sure_end")
   buttons = [
-    [InlineKeyboardButton(b("end_it"), callback_data="g:end_it")],
+    [InlineKeyboardButton(b("end_it"),   callback_data="g:end_it")],
     [InlineKeyboardButton(b("get_back"), callback_data="g:round_results")]
   ]
   await edit_message(session, text, buttons)
@@ -52,7 +91,7 @@ async def render_edit_player_score_screen(session: Session, player):
     [InlineKeyboardButton("+2", callback_data=f"g:edit_score:{player.id}:+2"), InlineKeyboardButton("-2", callback_data=f"g:edit_score:{player.id}:-2")],
     [InlineKeyboardButton("+5", callback_data=f"g:edit_score:{player.id}:+5"), InlineKeyboardButton("-5", callback_data=f"g:edit_score:{player.id}:-5")],
     [InlineKeyboardButton(b("another_player"), callback_data="g:edit_score")],
-    [InlineKeyboardButton(b("done"), callback_data="g:round_results:rewrite")],
+    [InlineKeyboardButton(b("done"),           callback_data="g:round_results:rewrite")],
   ]
   await edit_message(session, text, buttons)
 
@@ -87,7 +126,7 @@ async def handle_results(update: Update, game: Game, session: Session):
 
   if session.game_substate == ResultsSubstate.ROUND_RESULTS and data and data.startswith("g:round_results"):
     rewrite = len(data.split(":")) > 2
-    text = game.round_result(rewrite=rewrite)
+    text = render_result_text(game, rewrite=rewrite)
     if rewrite:
       refresh_all = True
     await render_round_results_screen(session, game, text, broadcast=refresh_all)
@@ -96,7 +135,7 @@ async def handle_results(update: Update, game: Game, session: Session):
     await render_round_report_screen(session, game)
 
   elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_it":
-    text = game.final_result()
+    text = render_final_result_text(game)
     end_game(game)
     await edit_message(session, text)
 
@@ -115,7 +154,7 @@ async def handle_results(update: Update, game: Game, session: Session):
         edit = int(parts[3])
         old_score = player.score
         player.score += edit
-        game.round_report += t("score_updated", p_name=player.name, old_score=old_score, new_score=player.score)
+        game.round_report.append(("score_updated", {"p_name": player.name, "old_score": old_score, "new_score": player.score}))
 
       await render_edit_player_score_screen(session, player)
 

@@ -10,15 +10,37 @@ from texts import t, b
 # --- screen renderers ---
 
 async def render_round_info_screen(game: Game):
-  text = game.start_round()
+  info = game.start_round()
+  text = t("round_info", round_number = info["round_number"], category = info["category"], mode = info["mode"]) 
+  
   buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:start_informing")]]
   await broadcast_message(game=game, mode="edit", text=text, buttons=buttons)
 
 async def render_show_info_screen(session: Session):
   player = session.players[session.turn_index]
-  text = player.info()
+  
+  if player.role == "detective":
+    text = t(
+      "show_info_detective",
+      p_name = player.name,
+      p_role = t(f"role_{player.role}"),
+      p_alpha_word = player.alpha_word,
+      p_beta_word = player.beta_word,
+      p_current_score = player.score
+    )
+  
+  else:
+    text = t(
+      "show_info_player",
+      p_name = player.name,
+      p_word = player.word,
+      p_prefix = t("your_team") if player.role in ["alpha", "beta"] else t("your_role"),
+      p_role = t(f"role_{player.role}"),
+      p_current_score = player.score
+    )
+  
   buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:next")]]
-  await edit_message(session, text, buttons, "HTML")
+  await edit_message(session, text, buttons)
 
 async def render_end_inform_screen(session: Session, game: Game):
   ready = game.sessions_ready >= len(game.chat_ids)

@@ -21,8 +21,8 @@ GUESS_TEAMS_TEXTS = {
   },
 
   "guess_result": {
-    "en": "Detective got {result}\nAlpha team: {alphas}\nBeta team: {betas}\n",
-    "ar": "حصل المحقق على {result}\nفريق ألفا: {alphas}\nفريق بيتا: {betas}\n"
+    "en": "Detective got {result_text}\nAlpha team: {alphas}\nBeta team: {betas}\n",
+    "ar": "حصل المحقق على {result_text}\nفريق ألفا: {alphas}\nفريق بيتا: {betas}\n"
   },
 
 }

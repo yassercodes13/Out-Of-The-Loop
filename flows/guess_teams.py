@@ -13,7 +13,7 @@ async def render_detective_waiting_screen(game: Game, session: Session):
     text=t("detective_will_guess"),
     exclude_chat_ids=[session.chat_id]
   )
-  buttons = [[InlineKeyboardButton(text="start", callback_data="g:start")]]
+  buttons = [[InlineKeyboardButton(b("start"), callback_data="g:start")]]
   await edit_message(session, t("your_turn_to_guess", detective_name=game.detective.name), buttons)
 
 
@@ -39,11 +39,14 @@ async def render_guessing_screen(session: Session, game: Game):
 
 async def render_result_screen(game: Game):
   result = game.check_detection()
+  sign = '+' if result['score'] > 0 else ''
+  result_text = f"{result['correct']}/{result['total']} ({sign}{result['score']}P)"
+
   text = t(
     "guess_result",
-    result=result,
-    alphas=", ".join([p.name for p in game.alphas]),
-    betas=", ".join([p.name for p in game.betas])
+    result_text = result_text,
+    alphas = ", ".join([p.name for p in game.alphas]),
+    betas  = ", ".join([p.name for p in game.betas])
   )
 
   owner_session = get_session_of_owner(game=game)
@@ -87,12 +90,11 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
 
   elif data == "g:confirm_guess" and session.game_substate == GuessTeamsSubstate.GUESSING:
     detective.sus_alphas = []
-    detective.sus_betas = []
+    detective.sus_betas  = []
 
     for p in game.players:
       if p == detective:
         continue
-
       if detective.team_guess[p.id] == "A":
         detective.sus_alphas.append(p)
       else:

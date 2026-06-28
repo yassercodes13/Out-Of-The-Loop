@@ -92,7 +92,7 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
       ]
 
       if session.game_substate is None:
-        await edit_message(session, text = t("settings_saved"), buttons = buttons)
+        await edit_message(session, text = t("settings_saved"))
         terminate_session(session = session)
     
       else:

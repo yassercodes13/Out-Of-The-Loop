@@ -31,7 +31,9 @@ async def render_waiting_result_screen(session: Session):
 
 
 async def render_vote_result_screen(game: Game):
-  result_message = game.check_team_guess()
+  result = game.check_team_guess()
+  result_message = "".join([t(string, **kwargs) for string, kwargs in result])
+
   text = t("see_results_prompt", result_message = result_message)
   buttons = [[InlineKeyboardButton(b("see_results"), callback_data="g:round_results")]]
 
