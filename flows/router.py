@@ -1,3 +1,4 @@
+import logging
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import ContextTypes
 from flows.mode_settings import handle_mode_settings
@@ -22,25 +23,32 @@ from handlers.utils import get_user_game
 from texts import set_lang, t, b
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 
-async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Game = None, session:Session = None):
+logger = logging.getLogger(__name__)
+
+
+async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game = None, session: Session = None):
   state_changed = False
   query = update.callback_query
   data = query.data if query else None
   user = get_user_game(update)[0]
   set_lang(user.lang)
 
-  # --- init game if not set ---
+  logger.info(f"User {user.id} | game: {game.id if game else None} | state: {game.state if game else None} | data: {data}")
+
+  # --- init game ---
   if data == "s:setup_game":
-    user, game = get_user_game(update) #Ensures user exists
+    user, game = get_user_game(update)
     if game:
+      logger.info(f"Game {game.id} terminated to start new game for user {user.id}")
       terminate_game(game)
 
-    chat_id = update.effective_chat.id
+    chat_id    = update.effective_chat.id
     message_id = update.effective_message.message_id
-    game = create_game(user_id = user.id, username = user.username)
-    session = set_session(chat_id = chat_id, message_id = message_id, game_id = game.id, user_id = user.id, bot = context.bot)
+    game       = create_game(user_id=user.id, username=user.username)
+    session    = set_session(chat_id=chat_id, message_id=message_id, game_id=game.id, user_id=user.id, bot=context.bot)
     game.state = GameState.SETUP
-    
+    logger.info(f"Game {game.id} created by user {user.id}")
+
     state_changed = await handle_setup(update, game, session)
 
   # --- route to correct flow ---
@@ -82,32 +90,33 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game:Ga
       state_changed = await handle_results(update, game, session)
 
   elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate) or (session.game_substate == ModeSettingsSubstate.MAIN):
-    
+
     if data == "e:done":
       buttons = [
-        [InlineKeyboardButton(b("categories"), callback_data = "e:categories")],
-        [InlineKeyboardButton(b("modes"), callback_data = "e:modes")],
-        [InlineKeyboardButton(b("language"), callback_data = "e:language")],
-        [InlineKeyboardButton(b("done"), callback_data = "e:done")],
+        [InlineKeyboardButton(b("categories"), callback_data="e:categories")],
+        [InlineKeyboardButton(b("modes"),      callback_data="e:modes")],
+        [InlineKeyboardButton(b("language"),   callback_data="e:language")],
+        [InlineKeyboardButton(b("done"),       callback_data="e:done")],
       ]
 
       if session.game_substate is None:
-        await edit_message(session, text = t("settings_saved"))
-        terminate_session(session = session)
-    
+        await edit_message(session, text=t("settings_saved"))
+        terminate_session(session=session)
       else:
-        await edit_message(session, text = t("choose_edit"), buttons = buttons)
+        await edit_message(session, text=t("choose_edit"), buttons=buttons)
         session.game_substate = None
 
     elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":
       state_changed = await handle_category_settings(update, game, session)
-  
+
     elif session.game_substate == ModeSettingsSubstate.MAIN or data == "e:modes":
       state_changed = await handle_mode_settings(update, game, session)
-    
+
     elif session.game_substate == LanguageSettingsSubstate.MAIN or data == "e:language":
       state_changed = await handle_language_settings(update, session)
 
   # --- reroute on state change ---
   if state_changed:
+    if game:
+      logger.info(f"Game {game.id} state changed to {game.state}")
     await route_game(update, context, game, session)

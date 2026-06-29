@@ -1,4 +1,5 @@
 .env
+ootlot.log
 __pycache__/
 *.pyc
 venv/

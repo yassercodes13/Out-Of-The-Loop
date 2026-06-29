@@ -1,3 +1,4 @@
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from flows.msg_utils import *
@@ -6,10 +7,13 @@ from flows.substates import SetupSubstate
 from handlers.utils import *
 from texts import t, b, set_lang
 
+logger = logging.getLogger(__name__)
+
 
 async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user = ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang = get_user_lang(update))
+  user = ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
   set_lang(user.lang)
+  logger.info(f"User {user.id} ({user.username}) started bot")
 
   if context.args:
     await join_game(update, context)
@@ -56,13 +60,13 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = t("join_usage")
     if current_game:
       text = t("already_in_game_join_warning") + text
-
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     return
 
   code = args[0]
   game = get_game_by_id(code)
   if not game:
+    logger.warning(f"User {user.id} tried to join nonexistent game {code}")
     await context.bot.send_message(chat_id=update.effective_chat.id, text=t("game_not_found", code=code))
     return
 
@@ -71,13 +75,11 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   if current_game:
+    logger.info(f"User {user.id} left game {current_game.id} to join game {game.id}")
     terminate_game(current_game)
 
   slots = empty_slots(game)
-  msg = await context.bot.send_message(
-    chat_id=update.effective_chat.id,
-    text=t("input_names", slots=slots),
-  )
+  msg = await context.bot.send_message(chat_id=update.effective_chat.id, text=t("input_names", slots=slots))
 
   add_user_to_game(user, game)
   session = set_session(
@@ -88,8 +90,8 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot=context.bot,
     game_substate=SetupSubstate.INPUT_NAMES
   )
+  logger.info(f"User {user.id} joined game {game.id}")
 
-  # Notify other sessions that another seat has been reserved
   slots = empty_slots(game)
   await broadcast_message(
     game=game, mode="edit",
@@ -113,6 +115,7 @@ async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if not await check_ownership(update, context, user, game):
     return
 
+  logger.info(f"Game {game.id} restarted by owner {user.id}")
   game.restart_game()
   buttons = [[InlineKeyboardButton(b("start_game"), callback_data='g:start_round')]]
   session = get_session_of_chat(update.effective_chat.id)
@@ -152,6 +155,7 @@ async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if not await check_ownership(update, context, user, game):
     return
 
+  logger.info(f"Game {game.id} ended by owner {user.id}")
   await broadcast_message(game=game, mode="edit", text=t("game_ended_by_owner"))
   terminate_game(game)
 
@@ -164,6 +168,7 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   if await check_ownership(update, context, user, game):
+    logger.info(f"Game {game.id} ended — owner {user.id} left")
     await broadcast_message(game=game, mode="edit", text=t("owner_left_game"))
     terminate_game(game)
     return
@@ -212,18 +217,16 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   message_text = " ".join(args)
-
   sender_session = get_session_of_user(user.id, user.username)
   for cid in game.chat_ids:
     session = get_session_of_chat(cid)
     if session == sender_session:
       continue
-
     formatted = f"{sender_session.players[0].name}: {message_text}"
     try:
       await context.bot.send_message(chat_id=session.chat_id, text=formatted)
     except Exception as e:
-      print(f"Broadcast failed for session {session.chat_id}: {e}")
+      logger.error(f"Broadcast failed | game: {game.id} | target chat: {session.chat_id} | error: {e}")
 
 
 async def check_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game):
@@ -243,19 +246,17 @@ async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE, us
   return True
 
 
-help_handler = CommandHandler('help', help)
-end_handler = CommandHandler('end', end_game)
-join_handler = CommandHandler('join', join_game)
-resend_handler = CommandHandler('game', resend_game)
-start_bot_handler = CommandHandler('start', start_bot)
-reset_handler = CommandHandler('restart', restart_game)
-start_new_game_handler = CommandHandler('new', start_new_game)
-edit_settings_handler = CommandHandler('settings', settings)
-broadcast_handler = CommandHandler(["broadcast", "bc"], broadcast)
-
-# Special handlers for callback queries with no prefix, not routed through the game router
-help_callback_handler = CallbackQueryHandler(help, pattern='help')
-del_message_handler = CallbackQueryHandler(del_message, pattern='del_message')
+help_handler             = CommandHandler('help', help)
+end_handler              = CommandHandler('end', end_game)
+join_handler             = CommandHandler('join', join_game)
+resend_handler           = CommandHandler('game', resend_game)
+start_bot_handler        = CommandHandler('start', start_bot)
+reset_handler            = CommandHandler('restart', restart_game)
+start_new_game_handler   = CommandHandler('new', start_new_game)
+edit_settings_handler    = CommandHandler('settings', settings)
+broadcast_handler        = CommandHandler(["broadcast", "bc"], broadcast)
+help_callback_handler    = CallbackQueryHandler(help, pattern='help')
+del_message_handler      = CallbackQueryHandler(del_message, pattern='del_message')
 
 user_commands_handlers = [
   start_bot_handler,
