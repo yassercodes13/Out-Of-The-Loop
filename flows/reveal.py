@@ -4,9 +4,10 @@ from data.modes import GameMode
 from flows.states import GameState
 from flows.substates import RevealSubstate
 from telegram import InlineKeyboardButton, Update
-from flows.msg_utils import *
+from flows.utils import *
 from texts import t, b
 from data.runtime_manager import get_session_of_owner, get_session_of_chat
+from adapters.telegram.messaging import *
 
 # --- screen renderers ---
 

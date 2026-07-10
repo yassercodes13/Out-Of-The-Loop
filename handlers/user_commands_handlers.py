@@ -1,11 +1,12 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
-from flows.msg_utils import *
+from flows.utils import *
 from flows.states import GameState
 from flows.substates import SetupSubstate
 from handlers.utils import *
 from texts import t, b, set_lang
+from adapters.telegram.messaging import *
 
 logger = logging.getLogger(__name__)
 

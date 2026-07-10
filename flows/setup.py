@@ -1,14 +1,16 @@
 from flows.category_settings import make_category_buttons
-from flows.msg_utils import *
+from flows.utils import *
 from flows.states import GameState
 from flows.substates import SetupSubstate
-from telegram import CallbackQuery, InlineKeyboardButton
+from telegram import InlineKeyboardButton
 from data.runtime_manager import *
 from handlers.utils import *
 from data.default_categories import default_categories
 from data.modes import GameMode
-from config import BOT_USERNAME
+from config import BOT_USERNAME, MAX_ROUNDS, MIN_ROUNDS, PLAYER_COUNT_OPTIONS_PER_ROW, ROUND_ADJUST_STEPS, MAX_PLAYERS, MIN_PLAYERS
 from texts import t, b
+from adapters.telegram.messaging import *
+
 
 
 # --- screen renderers ---
@@ -19,7 +21,7 @@ async def render_players_count_screen(session: Session):
     [
       InlineKeyboardButton(text=f"{i}", callback_data=f"s:players:{i}"),
       InlineKeyboardButton(text=f"{i+1}", callback_data=f"s:players:{i+1}")
-    ] for i in range(3, 10, 2)
+    ] for i in range(MIN_PLAYERS, MAX_PLAYERS, PLAYER_COUNT_OPTIONS_PER_ROW)
   ]
   await edit_message(session, text, buttons)
 
@@ -61,32 +63,20 @@ async def render_input_names_multiple_screen(session: Session, game: Game):
 async def render_adjust_rounds_screen(session: Session, game: Game, initial=False):
   text = t("adjust_number_of_rounds" if initial else "current_number_of_rounds", num_rounds=game.num_rounds)
 
-  buttons = [
-    [
-      InlineKeyboardButton("+1", callback_data='s:rounds:+1'),
-      InlineKeyboardButton("-1", callback_data='s:rounds:-1'),
-    ],
-    [
-      InlineKeyboardButton("+2", callback_data='s:rounds:+2'),
-      InlineKeyboardButton("-2", callback_data='s:rounds:-2')
-    ],
-    [
-      InlineKeyboardButton("+5", callback_data='s:rounds:+5'),
-      InlineKeyboardButton("-5", callback_data='s:rounds:-5')
-    ],
-    [
-      InlineKeyboardButton("+10", callback_data='s:rounds:+10'),
-      InlineKeyboardButton("-10", callback_data='s:rounds:-10')
-    ],
-  ]
+  buttons = []
+  for step in ROUND_ADJUST_STEPS:
+    buttons.append([
+      InlineKeyboardButton(f"+{step}", callback_data = f's:rounds:+{step}'),
+      InlineKeyboardButton(f"-{step}", callback_data = f's:rounds:-{step}'),
+    ])
 
   filtered = []
   for row in buttons:
     new_row = []
     for btn in row:
-      if "+" in btn.text and game.num_rounds == 25:
+      if "+" in btn.text and game.num_rounds == MAX_ROUNDS:
         continue
-      if "-" in btn.text and game.num_rounds == 1:
+      if "-" in btn.text and game.num_rounds == MIN_ROUNDS:
         continue
       new_row.append(btn)
     if new_row:
@@ -236,7 +226,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
   elif session.game_substate == SetupSubstate.CHOOSE_ROUNDS:
     if data.startswith("s:rounds:") and data != "s:rounds:done":
       rounds_count = game.num_rounds + int(data.split(':')[2])
-      rounds_count = max(min(rounds_count, 25), 1)
+      rounds_count = max(min(rounds_count, MAX_ROUNDS), MIN_ROUNDS)
 
       if game.num_rounds == rounds_count:
         return False

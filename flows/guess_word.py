@@ -3,9 +3,10 @@ from models.session import Session
 from flows.states import GameState
 from flows.substates import GuessWordSubstate
 from telegram import InlineKeyboardButton, Update
-from flows.msg_utils import *
+from flows.utils import *
 from data.runtime_manager import get_session_of_owner
 from texts import t, b
+from adapters.telegram.messaging import *
 
 # --- screen renderers ---
 

@@ -1,9 +1,11 @@
-from flows.msg_utils import *
+from config import SCORE_EDIT_STEPS
+from flows.utils import *
 from handlers.utils import end_game
 from flows.states import GameState
 from flows.substates import ResultsSubstate
 from telegram import InlineKeyboardButton, Update
 from texts import t, b
+from adapters.telegram.messaging import *
 
 
 # --- text builders (model returns structured data, we render it here) ---
@@ -87,12 +89,20 @@ async def render_edit_score_list_screen(session: Session, game: Game):
 
 async def render_edit_player_score_screen(session: Session, player):
   text = t("player_current_score", p_name=player.name, score=player.score)
-  buttons = [
-    [InlineKeyboardButton("+2", callback_data=f"g:edit_score:{player.id}:+2"), InlineKeyboardButton("-2", callback_data=f"g:edit_score:{player.id}:-2")],
-    [InlineKeyboardButton("+5", callback_data=f"g:edit_score:{player.id}:+5"), InlineKeyboardButton("-5", callback_data=f"g:edit_score:{player.id}:-5")],
-    [InlineKeyboardButton(b("another_player"), callback_data="g:edit_score")],
-    [InlineKeyboardButton(b("done"),           callback_data="g:round_results:rewrite")],
-  ]
+  buttons = []
+  for step in SCORE_EDIT_STEPS:
+    buttons.append(
+      [
+        InlineKeyboardButton(
+          f"+{step}",
+          callback_data=f"g:edit_score:{player.id}:+{step}"
+        ),
+        InlineKeyboardButton(
+          f"-{step}",
+          callback_data=f"g:edit_score:{player.id}:-{step}"
+        )
+      ]
+    )
   await edit_message(session, text, buttons)
 
 

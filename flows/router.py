@@ -8,7 +8,6 @@ from flows.states import GameState
 from flows.substates import AnyCategorySettingsSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
 from flows.category_settings import handle_category_settings
 from flows.language_settings import handle_language_settings
-from flows.msg_utils import edit_message
 from flows.setup import handle_setup
 from flows.vote import handle_voting
 from flows.reveal import handle_reveal
@@ -22,6 +21,7 @@ from flows.guess_outsider import handle_guess_outsider
 from handlers.utils import get_user_game
 from texts import set_lang, t, b
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
+from data.runtime_manager import *
 
 logger = logging.getLogger(__name__)
 

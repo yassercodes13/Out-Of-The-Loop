@@ -1,10 +1,11 @@
-from flows.msg_utils import *
+from flows.utils import *
 from flows.states import GameState
 from flows.substates import VoteWordsSubstate
 from telegram import InlineKeyboardButton, Update
 from data.runtime_manager import get_session_of_owner
 from models.player import Player
 from texts import t, b
+from adapters.telegram.messaging import *
 
 
 # --- screen renderers ---

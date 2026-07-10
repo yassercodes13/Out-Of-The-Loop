@@ -1,4 +1,5 @@
-from flows.msg_utils import *
+from flows.utils import *
+from adapters.telegram.messaging import *
 from flows.states import GameState
 from flows.substates import CategorySettingsSubstate, SetupSubstate
 from telegram import InlineKeyboardButton
@@ -7,6 +8,7 @@ from handlers.utils import *
 from data.default_categories import default_categories
 from models.category import Category
 from texts import t, b
+from config import CATEGORIES_PER_PAGE, MIN_LINES_FOR_CATEGORY, MIN_UNIQUE_WORDS
 
 
 # --- screen renderers ---
@@ -152,7 +154,7 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     if data.startswith("e:toggle:"):
       category_idx = int(data.split(':')[2])
       category = all_categories[category_idx]
-      start_idx = category_idx - category_idx % 5
+      start_idx = category_idx - (category_idx % CATEGORIES_PER_PAGE)
 
       if category not in user.random_categories:
         user.random_categories.append(category)
@@ -196,13 +198,13 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
 
   elif session.game_substate == CategorySettingsSubstate.CREATE and update.message and update.message.reply_to_message:
     lines = update.message.text.splitlines()
-    if len(lines) < 14:
+    if len(lines) < MIN_LINES_FOR_CATEGORY:
       await update.message.reply_text(t("create_too_few_lines"))
       return False
 
     title = lines[0].capitalize()
     words = list(dict.fromkeys(w for w in lines[1:] if w.strip()))
-    if len(words) < 13:
+    if len(words) < MIN_UNIQUE_WORDS:
       await update.message.reply_text(t("create_too_few_words"))
       return False
 
@@ -221,25 +223,25 @@ def make_category_buttons(start_idx: int, user: User, categories: list[Category]
   if show_random:
     buttons = [
       [InlineKeyboardButton(text=f"{cat.title} (R)" if cat in user.random_categories else cat.title, callback_data=f"{callback_prefix}:{i}")]
-      for i, cat in enumerate(categories) if start_idx <= i < 5 + start_idx
+      for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
     ]
   elif show_marks:
     buttons = [
       [InlineKeyboardButton(text=cat.title + (" ✔" if cat in user.random_categories else " ✘"), callback_data=f"{callback_prefix}:{i}")]
-      for i, cat in enumerate(categories) if start_idx <= i < 5 + start_idx
+      for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
     ]
   else:
     buttons = [
       [InlineKeyboardButton(text=cat.title, callback_data=f"{callback_prefix}:{i}")]
-      for i, cat in enumerate(categories) if start_idx <= i < 5 + start_idx
+      for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
     ]
 
   nav_buttons = []
   prefix = callback_prefix.split(':')[0] + ":"
   if start_idx != 0:
-    nav_buttons.append(InlineKeyboardButton(text = b("prev_page"), callback_data=f"{prefix}next_cats:{start_idx - 5}"))
-  if start_idx + 5 < len(categories):
-    nav_buttons.append(InlineKeyboardButton(text = b("next_page"), callback_data=f"{prefix}next_cats:{start_idx + 5}"))
+    nav_buttons.append(InlineKeyboardButton(text = b("prev_page"), callback_data=f"{prefix}next_cats:{start_idx - CATEGORIES_PER_PAGE}"))
+  if start_idx + CATEGORIES_PER_PAGE < len(categories):
+    nav_buttons.append(InlineKeyboardButton(text = b("next_page"), callback_data=f"{prefix}next_cats:{start_idx + CATEGORIES_PER_PAGE}"))
   buttons.append(nav_buttons)
 
   return buttons

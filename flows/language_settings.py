@@ -3,7 +3,7 @@ from data.users import get_user_by_id
 from models.session import Session
 from texts import t, b, set_lang, supported_langs
 from flows.substates import LanguageSettingsSubstate
-from flows.msg_utils import edit_message
+from adapters.telegram.messaging import *
 
 
 async def handle_language_settings(update: Update, session: Session):

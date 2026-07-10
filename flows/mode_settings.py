@@ -4,9 +4,9 @@ from flows.states import GameState
 from flows.substates import ModeSettingsSubstate, SetupSubstate
 from models.game import Game
 from models.session import Session
-from flows.msg_utils import *
+from flows.utils import *
 from texts import t, b
-
+from adapters.telegram.messaging import *
 
 # --- screen renderers ---
 

@@ -1,5 +1,5 @@
 import random
-from config import *
+from config import POINTS_SMALL, POINTS_STANDARD, POINTS_LARGE, NUM_WORD_CHOICES
 from data.modes import GameMode
 from flows.states import GameState
 from models.player import Player
@@ -136,7 +136,7 @@ class Game:
     og_list = self.category.words.copy()
     word_list = [w for w in og_list if w not in self.used_words]
 
-    if len(word_list) <= NUM_CHOICES:
+    if len(word_list) <= NUM_WORD_CHOICES:
       self.used_words = [w for w in self.used_words if w not in og_list]
 
     if self.mode == GameMode.TEAMS:
@@ -148,10 +148,10 @@ class Game:
       self.used_words.append(self.beta_word)
       word_list.remove(self.beta_word)
 
-      self.alpha_choices = random.sample(word_list, NUM_CHOICES - 1) + [self.beta_word]
+      self.alpha_choices = random.sample(word_list, NUM_WORD_CHOICES - 1) + [self.beta_word]
       random.shuffle(self.alpha_choices)
 
-      self.beta_choices = random.sample(word_list, NUM_CHOICES - 1) + [self.alpha_word]
+      self.beta_choices = random.sample(word_list, NUM_WORD_CHOICES - 1) + [self.alpha_word]
       random.shuffle(self.beta_choices)
 
       for player in self.players:
@@ -164,7 +164,7 @@ class Game:
       self.word = random.choice(word_list)
       self.used_words.append(self.word)
       word_list.remove(self.word)
-      self.choices = random.sample(word_list, NUM_CHOICES - 1) + [self.word]
+      self.choices = random.sample(word_list, NUM_WORD_CHOICES - 1) + [self.word]
       random.shuffle(self.choices)
 
       for player in self.players:
@@ -182,7 +182,7 @@ class Game:
 
     for insider in self.insiders:
       if insider.voted_on and insider.voted_on.role == "outsider":
-        insider.round_score += 10
+        insider.round_score += POINTS_STANDARD
         self.round_report.append(("report_insider_voted_outsider", {"name": insider.name, "target": insider.voted_on.name}))
       elif insider.voted_on and insider.voted_on.role == "insider":
         self.round_report.append(("report_insider_voted_insider", {"name": insider.name, "target": insider.voted_on.name}))
@@ -191,14 +191,14 @@ class Game:
       if self.spy.voted_on and self.spy.voted_on.role == "outsider":
         for player in self.spy.votes_against:
           if player.role == "insider":
-            self.spy.round_score += 5
-            player.round_score  -= 5
+            self.spy.round_score += POINTS_SMALL
+            player.round_score  -= POINTS_SMALL
             self.round_report.append(("report_insider_voted_spy_minus", {"name": player.name, "target": player.voted_on.name}))
       else:
         for player in self.spy.votes_against:
           if player.role == "insider":
-            self.spy.round_score -= 5
-            player.round_score  += 5
+            self.spy.round_score -= POINTS_SMALL
+            player.round_score  += POINTS_SMALL
             self.round_report.append(("report_insider_voted_spy_plus", {"name": player.name, "target": player.voted_on.name}))
 
       sign = '+' if self.spy.round_score > 0 else ''
@@ -217,29 +217,29 @@ class Game:
           "target_role": outsider.voted_on.role,  # role identifier — flow translates
         }))
       if not outsider.votes_against:
-        outsider.round_score += 5
+        outsider.round_score += POINTS_SMALL
         self.round_report.append(("report_outsider_no_votes", {"name": outsider.name}))
 
     for alpha in self.alphas:
       if   alpha.voted_on and alpha.voted_on.role == "beta":
-        alpha.round_score += 5
+        alpha.round_score += POINTS_SMALL
         self.round_report.append(("report_alpha_voted_beta",       {"name": alpha.name, "target": alpha.voted_on.name}))
       elif alpha.voted_on and alpha.voted_on.role == "alpha":
-        alpha.round_score -= 5
+        alpha.round_score -= POINTS_SMALL
         self.round_report.append(("report_alpha_voted_alpha",      {"name": alpha.name, "target": alpha.voted_on.name}))
       elif alpha.voted_on and alpha.voted_on.role == "detective":
-        alpha.round_score -= 5
+        alpha.round_score -= POINTS_SMALL
         self.round_report.append(("report_alpha_voted_detective",  {"name": alpha.name, "target": alpha.voted_on.name}))
 
     for beta in self.betas:
       if   beta.voted_on and beta.voted_on.role == "alpha":
-        beta.round_score += 5
+        beta.round_score += POINTS_SMALL
         self.round_report.append(("report_beta_voted_alpha",       {"name": beta.name, "target": beta.voted_on.name}))
       elif beta.voted_on and beta.voted_on.role == "beta":
-        beta.round_score -= 5
+        beta.round_score -= POINTS_SMALL
         self.round_report.append(("report_beta_voted_beta",        {"name": beta.name, "target": beta.voted_on.name}))
       elif beta.voted_on and beta.voted_on.role == "detective":
-        beta.round_score -= 5
+        beta.round_score -= POINTS_SMALL
         self.round_report.append(("report_beta_voted_detective",   {"name": beta.name, "target": beta.voted_on.name}))
 
     if self.detective:
@@ -255,7 +255,7 @@ class Game:
 
   def check_word(self, word_choice: str):
     if word_choice == self.word:
-      self.word_guesser.round_score += 10
+      self.word_guesser.round_score += POINTS_STANDARD
       self.round_report.append(("report_correct_word", {"name": self.word_guesser.name}))
       return True
     else:
@@ -266,11 +266,11 @@ class Game:
   def check_suspect(self, suspect: Player):
     guesser = self.outsiders[0]
     if suspect.role == 'outsider':
-      guesser.round_score += 20
+      guesser.round_score += POINTS_LARGE
       self.round_report.append(("report_correct_outsider", {"name": guesser.name, "suspect": suspect.name}))
       return True
     else:
-      guesser.round_score -= 10
+      guesser.round_score -= POINTS_STANDARD
       self.round_report.append(("report_wrong_outsider", {"name": guesser.name, "suspect": suspect.name}))
       return False
 
@@ -285,21 +285,21 @@ class Game:
     for sus in self.detective.sus_alphas:
       self.round_report.append(("report_detective_sus_alpha", {"name": sus.name}))
       if sus in self.alphas:
-        self.detective.round_score += 5
+        self.detective.round_score += POINTS_SMALL
         self.round_report.append(("report_detective_correct", {}))
         correct += 1
       else:
-        self.detective.round_score -= 5
+        self.detective.round_score -= POINTS_SMALL
         self.round_report.append(("report_detective_wrong", {}))
 
     for sus in self.detective.sus_betas:
       self.round_report.append(("report_detective_sus_beta", {"name": sus.name}))
       if sus in self.betas:
-        self.detective.round_score += 5
+        self.detective.round_score += POINTS_SMALL
         self.round_report.append(("report_detective_correct", {}))
         correct += 1
       else:
-        self.detective.round_score -= 5
+        self.detective.round_score -= POINTS_SMALL
         self.round_report.append(("report_detective_wrong", {}))
 
     round_score = self.detective.round_score  # save before add_up_score() resets it to 0
@@ -334,13 +334,13 @@ class Game:
       mini_report += tie_entries
       mini_report.append(("report_team_scored_plus", {}))
       for alpha in self.alphas:
-        alpha.round_score += 5
+        alpha.round_score += POINTS_SMALL
     else:
       mini_report.append(("report_team_wrong", {"team": "alpha", "word": alpha_guess}))
       mini_report += tie_entries
       mini_report.append(("report_team_scored_minus", {}))
       for alpha in self.alphas:
-        alpha.round_score -= 5
+        alpha.round_score -= POINTS_SMALL
 
     # --- Betas ---
     tie_entries = []
@@ -359,13 +359,13 @@ class Game:
       mini_report += tie_entries
       mini_report.append(("report_team_scored_plus", {}))
       for beta in self.betas:
-        beta.round_score += 5
+        beta.round_score += POINTS_SMALL
     else:
       mini_report.append(("report_team_wrong", {"team": "beta", "word": beta_guess}))
       mini_report += tie_entries
       mini_report.append(("report_team_scored_minus", {}))
       for beta in self.betas:
-        beta.round_score -= 5
+        beta.round_score -= POINTS_SMALL
 
     self.round_report += mini_report
     return mini_report
