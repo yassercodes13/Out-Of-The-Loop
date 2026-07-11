@@ -1,6 +1,6 @@
 class Player:
   def __init__(self, name, session_id, id = 0,):
-    self.id = id                 #simple incremental id to identify players in a game, not related to user id
+    self.id = id
     self.name = name
     self.session_id = session_id
 

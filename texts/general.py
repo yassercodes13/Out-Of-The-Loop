@@ -132,4 +132,9 @@ GENERAL_TEXTS = {
   "team_alpha": {"en": "Alphas", "ar": "فريق ألفا"},
   "team_beta":  {"en": "Betas",  "ar": "فريق بيتا"},
 
+  # --- Outsider Word Placeholder ---
+  "outsider_word_placeholder":{
+    "en": "Hidden 🤫",
+    "ar": "🤫 مخفية",
+  }
 }

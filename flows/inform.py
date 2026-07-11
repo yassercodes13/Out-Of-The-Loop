@@ -1,5 +1,6 @@
 from data.runtime_manager import get_session_of_owner
 from models.game import Game
+from models.role import Role
 from models.session import Session
 from flows.states import GameState
 from flows.substates import InformSubstate
@@ -20,11 +21,11 @@ async def render_round_info_screen(game: Game):
 async def render_show_info_screen(session: Session):
   player = session.players[session.turn_index]
   
-  if player.role == "detective":
+  if player.role == Role.DETECTIVE:
     text = t(
       "show_info_detective",
       p_name = player.name,
-      p_role = t(f"role_{player.role}"),
+      p_role = t(f"role_{player.role.value}"),
       p_alpha_word = player.alpha_word,
       p_beta_word = player.beta_word,
       p_current_score = player.score
@@ -35,8 +36,8 @@ async def render_show_info_screen(session: Session):
       "show_info_player",
       p_name = player.name,
       p_word = player.word,
-      p_prefix = t("your_team") if player.role in ["alpha", "beta"] else t("your_role"),
-      p_role = t(f"role_{player.role}"),
+      p_prefix = t("your_team") if player.role in [Role.ALPHA, Role.BETA] else t("your_role"),
+      p_role = t(f"role_{player.role.value}"),
       p_current_score = player.score
     )
   

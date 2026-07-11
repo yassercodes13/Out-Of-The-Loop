@@ -25,6 +25,11 @@ CATEGORIES_PER_PAGE = 5
 ROUND_ADJUST_STEPS = [1, 2, 5, 10]
 SCORE_EDIT_STEPS = [2, 5]
 PLAYER_COUNT_OPTIONS_PER_ROW = 2
+ARROWS = {
+  "up": "⬆️",
+  "same": "➡️",
+  "down": "⬇️",
+}
 
 #Telegram Specific Constants
 RETRY_SLEEP_SECONDS = 1

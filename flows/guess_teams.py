@@ -3,6 +3,7 @@ from flows.states import GameState
 from flows.substates import GuessTeamsSubstate
 from telegram import InlineKeyboardButton, Update
 from data.runtime_manager import get_session_of_owner
+from models.role import Role
 from texts import t, b
 from adapters.telegram.messaging import *
 
@@ -27,10 +28,11 @@ async def render_guessing_screen(session: Session, game: Game):
     if p == detective:
       continue
     team = detective.team_guess[p.id]
+    team_display = t(f"team_{team.value}")
     buttons.append([
       InlineKeyboardButton(
-        t("player_team_toggle", p_name=p.name, team=team),
-        callback_data=f"g:toggle_{p.id}"
+        t("player_team_toggle", p_name = p.name, team = team_display),
+        callback_data = f"g:toggle_{p.id}"
       )
     ])
 
@@ -69,7 +71,7 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
     game.sessions_ready = 0
 
     detective.team_guess = {
-      p.id: "A" for p in game.players if p != detective
+      p.id: Role.ALPHA.value for p in game.players if p != detective
     }
 
     session.game_substate = GuessTeamsSubstate.GUESSING
@@ -85,7 +87,7 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
 
     if player_id in detective.team_guess:
       current = detective.team_guess[player_id]
-      detective.team_guess[player_id] = "B" if current == "A" else "A"
+      detective.team_guess[player_id] = Role.BETA.value if current == Role.ALPHA.value else Role.ALPHA.value
 
   # --- CONFIRM GUESS ---
 
@@ -96,7 +98,7 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
     for p in game.players:
       if p == detective:
         continue
-      if detective.team_guess[p.id] == "A":
+      if detective.team_guess[p.id] == Role.ALPHA.value:
         detective.sus_alphas.append(p)
       else:
         detective.sus_betas.append(p)
