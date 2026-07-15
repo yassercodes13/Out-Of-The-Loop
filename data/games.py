@@ -3,7 +3,7 @@ import time
 import random
 import secrets
 from data.runtime import *
-from config import GAME_ID_ALPHABET, GAME_ID_LENGTH
+from config import ID_ALPHABET, GAME_ID_LENGTH
   
 def make_game(owner_id: int):
   game_id = generate_game_id(GAME_ID_LENGTH)
@@ -23,6 +23,6 @@ def delete_game(game: Game):
 
 def generate_game_id(length = GAME_ID_LENGTH):
   while True:
-    game_id = ''.join(secrets.choice(GAME_ID_ALPHABET) for _ in range(length))
+    game_id = ''.join(secrets.choice(ID_ALPHABET) for _ in range(length))
     if game_id not in active_games:
       return game_id

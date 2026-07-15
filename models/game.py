@@ -58,6 +58,7 @@ class Game:
     self.state = None
     self.sessions_ready = 0
     self.turn_index = 0
+    self.next_player_id = 0
     self.names = []
 
 
@@ -79,7 +80,6 @@ class Game:
 
 
   def prepare_players(self, session_id, players_names):
-    length = len(self.players)
     new_names = []
     for name in players_names:
       self.names.append(name)
@@ -88,10 +88,13 @@ class Game:
         name += f"_{r}"
       new_names.append(name)
 
-    new_players = [
-      Player(name=n, session_id=session_id, id=length + i)
-      for i, n in enumerate(new_names)
-    ]
+    new_players = []
+    for name in new_names:
+      new_players.append(
+        Player(name = name, session_id = session_id, id = self.next_player_id)
+      )
+      self.next_player_id += 1
+
     self.players.extend(new_players)
     return new_players
 

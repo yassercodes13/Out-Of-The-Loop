@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+import secrets
 from typing import List, Optional
 from datetime import datetime, timezone
+from config import ID_ALPHABET, CATEGORY_CODE_LENGTH
 
 
 @dataclass
@@ -27,5 +29,7 @@ class Category:
   
   def generate_id(self):
     timestamp = int(self.created_at.timestamp() * 1000)  # in milliseconds
-    self.id = f"{self.title.lower().replace(' ', '_')}_{timestamp}"
+    rear_part = str(timestamp)[-4:]
+    code = ''.join(secrets.choice(ID_ALPHABET) for _ in range(CATEGORY_CODE_LENGTH))
+    self.id = f"{code}@{rear_part}"
   

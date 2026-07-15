@@ -8,17 +8,17 @@ class User:
     id,
     username,
     lang = 'en',
-    random_modes = [m for m in GameMode if m != GameMode.RANDOM],
-    random_categories = [cat for cat in default_categories],
-    generated_categories = []
+    random_modes = None,
+    random_categories = None,
+    generated_categories = None
   ):
     self.id = id
     self.game_id = None
     self.username: str = username
     self.lang: str = lang
-    self.random_modes: list[GameMode] = random_modes
-    self.random_categories: list[Category] = random_categories
-    self.generated_categories: list[Category] = generated_categories
+    self.random_modes: list[GameMode] = random_modes if random_modes is not None else [m for m in GameMode if m != GameMode.RANDOM]
+    self.random_categories: list[Category] = random_categories if random_categories is not None else [cat for cat in default_categories]
+    self.generated_categories: list[Category] = generated_categories if generated_categories is not None else []
 
   @property
   def min_players_for_random(self):
