@@ -26,6 +26,6 @@ class Category:
     return len(self.words)
   
   def generate_id(self):
-    timestamp = int(self.created_at.timestamp() * 1000)  # Convert to milliseconds
+    timestamp = int(self.created_at.timestamp() * 1000)  # in milliseconds
     self.id = f"{self.title.lower().replace(' ', '_')}_{timestamp}"
   

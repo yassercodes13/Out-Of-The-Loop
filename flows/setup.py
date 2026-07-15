@@ -52,7 +52,7 @@ async def render_input_names_multiple_screen(session: Session, game: Game):
   text = t("game_type_multiple", game_id=game.id, slots=slots)
   await edit_message(session, text)
 
-  user = get_user_by_id(session.user_id)
+  user = await get_user_by_id(session.user_id)
   await session.bot.send_message(
     chat_id=session.chat_id,
     text=t("invitation_message", user_username=user.username),
@@ -236,7 +236,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
       return False
 
     if data == "s:rounds:done":
-      user = get_user_by_id(update.effective_user.id)
+      user = await get_user_by_id(update.effective_user.id)
       game.all_categories = user.generated_categories + default_categories
       await render_choose_category_screen(session, game, user)
       session.game_substate = SetupSubstate.CHOOSE_CATEGORY
@@ -249,7 +249,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
       return True
 
     if data == "s:choose_category" or data.startswith("s:next_cats:"):
-      user = get_user_by_id(update.effective_user.id)
+      user = await get_user_by_id(update.effective_user.id)
       game.all_categories = user.generated_categories + default_categories
 
       start_idx = 0
@@ -262,7 +262,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
       return False
 
     if data.startswith("s:cat:"):
-      user = get_user_by_id(update.effective_user.id)
+      user = await get_user_by_id(update.effective_user.id)
 
       category_idx = data.split(':')[2]
       if category_idx != "random":
@@ -286,7 +286,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
       return True
 
     if data == "s:choose_mode":
-      user = get_user_by_id(update.effective_user.id)
+      user = await get_user_by_id(update.effective_user.id)
       category_info = t("category_info", category_title=game.category.title if game.category else "Random")
       await render_choose_mode_screen(session, user, category_info)
       session.game_substate = SetupSubstate.CHOOSE_MODE
@@ -297,7 +297,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
       mode = GameMode(mode_txt)
 
       if mode == GameMode.RANDOM:
-        user = get_user_by_id(update.effective_user.id)
+        user = await get_user_by_id(update.effective_user.id)
         if user.min_players_for_random > len(game.players):
           await query.answer(
             t("random_mode_min_players", min_players=user.min_players_for_random, current_players=len(game.players)),
@@ -313,7 +313,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
         return False
 
       if mode == GameMode.RANDOM:
-        user = get_user_by_id(update.effective_user.id)
+        user = await get_user_by_id(update.effective_user.id)
         game.random_mode_options = user.random_modes
 
       game.mode = mode

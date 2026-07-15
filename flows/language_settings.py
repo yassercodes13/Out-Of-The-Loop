@@ -9,7 +9,7 @@ from adapters.telegram.messaging import *
 async def handle_language_settings(update: Update, session: Session):
   query = update.callback_query
   data = query.data if query else None
-  user = get_user_by_id(session.user_id)
+  user = await get_user_by_id(session.user_id)
 
   async def render_language_settings_screen():
     buttons = []
@@ -32,6 +32,7 @@ async def handle_language_settings(update: Update, session: Session):
 
     elif data == "e:done":
       session.game_substate = None
+      await update_user(user)
       return True
     
     await render_language_settings_screen()

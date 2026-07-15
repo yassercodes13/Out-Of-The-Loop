@@ -9,17 +9,17 @@ from data.sessions import *
 #                 Game                 #
 ########################################
 
-def create_game(user_id: int, username: str, lang: str = 'en'):
-  user = ensure_user(user_id = user_id, username = username, lang = lang)
+async def create_game(user_id: int, username: str, lang: str = 'en'):
+  user = await ensure_user(user_id = user_id, username = username, lang = lang)
   if user.game_id:
-    terminate_game(game_id = user.game_id)
+    await terminate_game(game_id = user.game_id)
   
   game = make_game(owner_id = user_id)
   user.game_id = game.id
 
   return game
 
-def terminate_game(game: Game = None, game_id: str = None):
+async def terminate_game(game: Game = None, game_id: str = None):
   if not game:
     if not game_id:
       return None
@@ -32,18 +32,18 @@ def terminate_game(game: Game = None, game_id: str = None):
     terminate_session(chat_id=cid)
   
   for user_id in game.user_ids:
-    user = get_user_by_id(user_id)
+    user = await get_user_by_id(user_id)
     if user:
       user.game_id = None
 
   return active_games.pop(game.id)
 
 
-def get_game_of_user(user: User = None, user_id: int = None, username: str = None, lang: str = 'en'):
+async def get_game_of_user(user: User = None, user_id: int = None, username: str = None, lang: str = 'en'):
   if not user:
     if not user_id or not username:
       return None
-    user = ensure_user(user_id = user_id, username = username, lang = lang)
+    user = await ensure_user(user_id = user_id, username = username, lang = lang)
   
   if user.game_id:
     return active_games.get(user.game_id)
@@ -66,10 +66,10 @@ def get_game_of_session(session: Session = None, chat_id: int = None):
 #                 User                 #
 ########################################
 
-def ensure_user(user_id, username, lang = 'en'):
-  user = get_user_by_id(user_id)
+async def ensure_user(user_id, username, lang = 'en'):
+  user = await get_user_by_id(user_id)
   if not user:
-    user = make_user(id = user_id, username = username, lang = lang)
+    user = await make_user(id = user_id, username = username, lang = lang)
   return user
 
 def add_user_to_game(user: User, game: Game):
@@ -126,8 +126,8 @@ def get_session_of_owner(game: Game = None, game_id: str = None):
       
   return None
 
-def get_session_of_user(user_id, username):
-  game = get_game_of_user(user_id = user_id, username = username)
+async def get_session_of_user(user_id, username):
+  game = await get_game_of_user(user_id = user_id, username = username)
   if game:
     for cid in game.chat_ids:
       session = active_sessions.get(cid)

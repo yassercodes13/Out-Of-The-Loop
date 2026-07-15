@@ -7,10 +7,10 @@ def leave_game(user: User, game: Game):
 
   user.game_id = None
 
-def end_game(game: Game):
+async def end_game(game: Game):
   # remove all users from game
   for uid in game.user_ids:
-    user = get_user_by_id(uid)
+    user = await get_user_by_id(uid)
     if user:
       user.game_id = None
 

@@ -11,11 +11,11 @@ from adapters.telegram.messaging import *
 # --- screen renderers ---
 
 async def render_mode_settings_screen(session: Session, game: Game, user):
-  text = t("mode_settings_info", min_players=user.min_players_for_random)
+  text = t("mode_settings_info", min_players = user.min_players_for_random)
   buttons = [
     [InlineKeyboardButton(
-      text=mode.label + (" ✔" if mode in user.random_modes else " ✘"),
-      callback_data=f'e:toggle:{mode.value}'
+      text = mode.label + (" ✔" if mode in user.random_modes else " ✘"),
+      callback_data=f'e:toggle:{mode.name}'
     )] for mode in GameMode if mode != GameMode.RANDOM
   ]
   if game:
@@ -36,11 +36,11 @@ async def handle_mode_settings(update: Update, game: Game, session: Session):
     session.game_substate = ModeSettingsSubstate.MAIN
 
   if session.game_substate == ModeSettingsSubstate.MAIN:
-    user = get_user_by_id(update.effective_user.id)
+    user = await get_user_by_id(update.effective_user.id)
 
     if data and data.startswith("e:toggle"):
-      mode_txt = data.split(':')[2]
-      mode = GameMode(mode_txt)
+      mode_name = data.split(':')[2]
+      mode = GameMode[mode_name]
 
       if mode in user.random_modes:
         if len(user.random_modes) <= 2:
@@ -53,6 +53,7 @@ async def handle_mode_settings(update: Update, game: Game, session: Session):
     elif data and data.startswith("s:choose_mode"):
       game.state = GameState.SETUP
       session.game_substate = SetupSubstate.CHOOSE_MODE
+      await update_user(user)
       return True
 
     await render_mode_settings_screen(session, game, user)

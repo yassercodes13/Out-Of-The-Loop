@@ -1,3 +1,4 @@
+from db.repositories.category_repo import add_category, delete_category
 from flows.utils import *
 from adapters.telegram.messaging import *
 from flows.states import GameState
@@ -91,7 +92,7 @@ async def render_created_screen(session: Session, title: str, word_count: int, o
 async def handle_category_settings(update: Update, game: Game, session: Session):
   query = update.callback_query
   data = query.data if query else None
-  user = get_user_by_id(session.user_id)
+  user = await get_user_by_id(session.user_id)
   all_categories = user.generated_categories + default_categories
 
   if session.game_substate is None or data == "e:categories":
@@ -100,10 +101,12 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
   elif game and session.game_substate == CategorySettingsSubstate.MAIN and data == "s:choose_category":
     game.state = GameState.SETUP
     session.game_substate = SetupSubstate.CHOOSE_CATEGORY
+    await update_user(user)
     return True
 
   if session.game_substate == CategorySettingsSubstate.MAIN and data == "e:categories":
     await render_category_settings_main_screen(session, game)
+    await update_user(user)
     return False
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.DELETE] and data and (data.startswith("e:delete") or data.startswith("e:next_cats:")):
@@ -137,11 +140,17 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       idx = int(data.split(':')[2])
       if 0 <= idx < len(user.generated_categories):
         deleted_cat = user.generated_categories.pop(idx)
+        
+        await delete_category(deleted_cat.id)
         if deleted_cat in user.random_categories:
           user.random_categories.remove(deleted_cat)
+        
+        await update_user(user)
+        
         all_categories = user.generated_categories + default_categories
         if len(user.random_categories) < 2:
           user.random_categories = [cat for cat in all_categories]
+        
         await render_deleted_screen(session, deleted_cat.title)
       else:
         await query.answer(t("invalid_category"), show_alert=True)
@@ -211,6 +220,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     new_category = Category(title=title, words=words, owner_id=update.effective_user.id)
     user.generated_categories.append(new_category)
     user.random_categories.append(new_category)
+    await add_category(new_category)
+    await update_user(user)
 
     old_message = update.message.reply_to_message if update.message else None
     await render_created_screen(session, title, len(words), old_message)

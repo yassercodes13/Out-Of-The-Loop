@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user = ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
   set_lang(user.lang)
   logger.info(f"User {user.id} ({user.username}) started bot")
 
@@ -33,7 +33,7 @@ async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def start_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user = ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
   set_lang(user.lang)
 
   keyboard = [
@@ -53,7 +53,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, current_game = get_user_game(update)
+  user, current_game = await get_user_game(update)
   set_lang(user.lang)
   args = context.args
 
@@ -77,7 +77,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if current_game:
     logger.info(f"User {user.id} left game {current_game.id} to join game {game.id}")
-    terminate_game(current_game)
+    await terminate_game(current_game)
 
   slots = empty_slots(game)
   msg = await context.bot.send_message(chat_id=update.effective_chat.id, text=t("input_names", slots=slots))
@@ -103,7 +103,7 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update)
+  user, game = await get_user_game(update)
   set_lang(user.lang)
 
   if not await check_game(update, context, game):
@@ -127,7 +127,7 @@ async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update)
+  user, game = await get_user_game(update)
   set_lang(user.lang)
 
   if not await check_game(update, context, game):
@@ -147,7 +147,7 @@ async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update)
+  user, game = await get_user_game(update)
   set_lang(user.lang)
 
   if not await check_game(update, context, game):
@@ -158,11 +158,11 @@ async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   logger.info(f"Game {game.id} ended by owner {user.id}")
   await broadcast_message(game=game, mode="edit", text=t("game_ended_by_owner"))
-  terminate_game(game)
+  await terminate_game(game)
 
 
 async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update)
+  user, game = await get_user_game(update)
   set_lang(user.lang)
 
   if not await check_game(update, context, game):
@@ -171,14 +171,14 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if await check_ownership(update, context, user, game):
     logger.info(f"Game {game.id} ended — owner {user.id} left")
     await broadcast_message(game=game, mode="edit", text=t("owner_left_game"))
-    terminate_game(game)
+    await terminate_game(game)
     return
   else:
     pass  # should do something TODO
 
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update)
+  user, game = await get_user_game(update)
   set_lang(user.lang)
 
   if game:
@@ -206,7 +206,7 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = get_user_game(update)
+  user, game = await get_user_game(update)
   set_lang(user.lang)
   args = context.args
 
@@ -218,7 +218,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   message_text = " ".join(args)
-  sender_session = get_session_of_user(user.id, user.username)
+  sender_session = await get_session_of_user(user.id, user.username)
   for cid in game.chat_ids:
     session = get_session_of_chat(cid)
     if session == sender_session:

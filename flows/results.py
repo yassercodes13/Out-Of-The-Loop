@@ -146,7 +146,7 @@ async def handle_results(update: Update, game: Game, session: Session):
 
   elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_it":
     text = render_final_result_text(game)
-    end_game(game)
+    await end_game(game)
     await edit_message(session, text)
 
   elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_results":

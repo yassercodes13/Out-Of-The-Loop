@@ -1,42 +1,16 @@
 from enum import Enum
 
+
 class GameMode(Enum):
-  CLASSIC = "Classic"
-  DOUBLE_BLUFF = "Double bluff"
-  SPY = "Spy"
-  THREE_BODY_PROBLEM = "Three Body Problem"
-  TEAMS = "Teams"
-  RANDOM = "Random"
+  CLASSIC = ("Classic", 3, 1, 0)
+  DOUBLE_BLUFF = ("Double Bluff", 4, 2, 0)
+  SPY = ("Spy", 4, 1, 1)
+  THREE_BODY_PROBLEM = ("Three Body Problem", 6, 2, 1)
+  TEAMS = ("Teams", 4, 0, 0)
+  RANDOM = ("Random", 4, 0, 0)
 
-  def __init__(self, label):
+  def __init__(self, label, min_players, outsiders, spies):
     self.label = label
-
-    # defaults
-    self.min_players = 3
-    self.num_outsiders = 0
-    self.num_spies = 0
-
-    # per-mode config
-    if self.name == "CLASSIC":
-      self.min_players = 3
-      self.num_outsiders = 1
-
-    elif self.name == "DOUBLE_BLUFF":
-      self.min_players = 4
-      self.num_outsiders = 2
-
-    elif self.name == "SPY":
-      self.min_players = 4
-      self.num_outsiders = 1
-      self.num_spies = 1
-
-    elif self.name == "THREE_BODY_PROBLEM":
-      self.min_players = 6
-      self.num_outsiders = 2
-      self.num_spies = 1
-
-    elif self.name == "TEAMS":
-      self.min_players = 4
-
-    elif self.name == "RANDOM":
-      self.min_players = 4
+    self.min_players = min_players
+    self.num_outsiders = outsiders
+    self.num_spies = spies

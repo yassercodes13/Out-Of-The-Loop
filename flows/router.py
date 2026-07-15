@@ -20,6 +20,7 @@ from flows.guess_teams import handle_guess_teams
 from flows.guess_outsider import handle_guess_outsider
 from handlers.utils import get_user_game
 from texts import set_lang, t, b
+from adapters.telegram.messaging import edit_message
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 from data.runtime_manager import *
 
@@ -30,21 +31,21 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   state_changed = False
   query = update.callback_query
   data = query.data if query else None
-  user = get_user_game(update)[0]
+  user, _ = await get_user_game(update)
   set_lang(user.lang)
 
   logger.info(f"User {user.id} | game: {game.id if game else None} | state: {game.state if game else None} | data: {data}")
 
   # --- init game ---
   if data == "s:setup_game":
-    user, game = get_user_game(update)
+    user, game = await get_user_game(update)
     if game:
       logger.info(f"Game {game.id} terminated to start new game for user {user.id}")
-      terminate_game(game)
+      await terminate_game(game)
 
     chat_id    = update.effective_chat.id
     message_id = update.effective_message.message_id
-    game       = create_game(user_id=user.id, username=user.username)
+    game       = await create_game(user_id=user.id, username=user.username)
     session    = set_session(chat_id=chat_id, message_id=message_id, game_id=game.id, user_id=user.id, bot=context.bot)
     game.state = GameState.SETUP
     logger.info(f"Game {game.id} created by user {user.id}")
@@ -103,6 +104,7 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
         await edit_message(session, text=t("settings_saved"))
         terminate_session(session=session)
       else:
+        await update_user(user)
         await edit_message(session, text=t("choose_edit"), buttons=buttons)
         session.game_substate = None
 

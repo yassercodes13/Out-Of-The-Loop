@@ -3,9 +3,9 @@ from data.runtime import *
 from data.runtime_manager import *
 from texts import supported_langs
 
-def get_user_game(update: Update):
-  user = ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
-  game = get_game_of_user(user=user)
+async def get_user_game(update: Update):
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang = get_user_lang(update))
+  game = await get_game_of_user(user=user)
   return (user, game)
 
 
@@ -43,5 +43,5 @@ def is_active(update: Update):
   return active_session.message_id == message_id
 
 
-def end_game(game: Game):
-  terminate_game(game=game)
+async def end_game(game: Game):
+  await terminate_game(game=game)
