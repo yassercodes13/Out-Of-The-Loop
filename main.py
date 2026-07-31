@@ -2,7 +2,7 @@ from logger import setup_logging
 setup_logging()
 
 from config import TOKEN
-from telegram.ext import ApplicationBuilder, Application
+from telegram.ext import Application, JobQueue
 from handlers.user_commands_handlers import user_commands_handlers
 from handlers.interaction_handlers import interaction_handlers
 import logging
@@ -10,7 +10,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 def main():
-  app = ApplicationBuilder().token(TOKEN).build()
+  app = Application.builder().token(TOKEN).job_queue(JobQueue()).build()
+
   add_handlers(app)
   logger.info("Bot started")
   app.run_polling()

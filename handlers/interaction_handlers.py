@@ -12,14 +12,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
   set_lang(user.lang)
 
-  if not data or not data.startswith(("s:", "g:", "e:")):
+  if not data or not data.startswith(("s:", "g:", "e:", "i:")):
     return
 
   session, game = get_session_game(update)
+  if session:
+    session.set_reminder(context = context)
+  if game:
+    game.set_reminder(context = context)
 
   is_starting_game = (data == "s:setup_game")
+  is_interrupting = session and ((session.interrupt_substate is not None) or (data and data.startswith("i:")))
 
-  if not is_active(update) and not is_starting_game:
+  if not is_active(update) and not is_starting_game and not is_interrupting:
     await query.answer(text=t("not_active"))
     return
 
@@ -31,6 +36,10 @@ async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
   set_lang(user.lang)
 
   session, game = get_session_game(update)
+  if session:
+    session.set_reminder(context = context)
+  if game:
+    game.set_reminder(context = context)
 
   if not is_active(update):
     if game and session:
@@ -40,7 +49,7 @@ async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await route_game(update, context, game, session)
 
 
-callback_handler = CallbackQueryHandler(handle_callback, pattern=r"^(g:|s:|e:)")
+callback_handler = CallbackQueryHandler(handle_callback, pattern=r"^(g:|s:|e:|i:)")
 reply_handler = MessageHandler(filters.TEXT & ~filters.COMMAND & filters.REPLY, handle_reply)
 
 interaction_handlers = [

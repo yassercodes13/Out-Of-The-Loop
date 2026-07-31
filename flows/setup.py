@@ -94,15 +94,20 @@ async def render_choose_category_screen(session: Session, game: Game, user: User
   await edit_message(session, text, buttons)
 
 
-async def render_choose_mode_screen(session: Session, user: User, category_info = ""):
-  text = t("choose_mode", category_info=category_info)
+async def render_choose_mode_screen(session: Session, user: User, category_info = "", mode_change = False):
+  if category_info != "":
+    text = t("choose_mode", category_info=category_info)
+
+  elif mode_change:
+    text = t("mode_change_needed")
+
   buttons = [
     [InlineKeyboardButton(
       text=mode.label + (f" ({mode.min_players}{' R' if mode in user.random_modes else ''})"),
-      callback_data=f's:mode:{mode.value}')
+      callback_data=f's:mode:{mode.name}')
     ] for mode in GameMode if mode != GameMode.RANDOM
   ]
-  buttons.append([InlineKeyboardButton(text=b("random_with_number", min_players_for_random=user.min_players_for_random), callback_data=f's:mode:{GameMode.RANDOM.value}')])
+  buttons.append([InlineKeyboardButton(text=b("random_with_number", min_players_for_random=user.min_players_for_random), callback_data=f's:mode:{GameMode.RANDOM.name}')])
   buttons.append([InlineKeyboardButton(text=b("edit_random"), callback_data=f'e:modes')])
   await edit_message(session, text, buttons)
 
@@ -121,6 +126,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
   if session.game_substate is None and query and data:
     session.game_substate = SetupSubstate.PLAYERS_COUNT
+    session.waited = True
     await render_players_count_screen(session)
     return False
 
@@ -169,6 +175,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
       session.prepare_players(player_names, game)
       session.game_substate = SetupSubstate.WAITING
+      session.waited = False
 
       if game.type == "multiple":
         players_names = ', '.join([p.name for p in session.players])
@@ -180,12 +187,13 @@ async def handle_setup(update: Update, game: Game, session: Session):
         if len(game.players) == game.initial_players_count:
           buttons = [[InlineKeyboardButton(text=b("continue"), callback_data='s:all_joined')]]
           owner_session = get_session_of_owner(game=game)
+          owner_session.waited = True
           await edit_message(owner_session, t("all_joined"), buttons)
 
           for cid in game.chat_ids:
             session = get_session_of_chat(cid)
             if session.game_substate == SetupSubstate.INPUT_NAMES:
-              terminate_session(session)
+              await terminate_session(session)
 
         else:
           await broadcast_message(
@@ -208,6 +216,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
         players_names = ', '.join([p.name for p in session.players])
         text = t("names_confirmation_single", players_names=players_names)
         buttons = [[InlineKeyboardButton(text=b("continue"), callback_data='s:all_joined')]]
+        session.waited = True
 
         old_message = update.message.reply_to_message if update.message else None
         await send_message(session, text, buttons, old_message=old_message, delete_old_message=True)
@@ -293,8 +302,8 @@ async def handle_setup(update: Update, game: Game, session: Session):
       return False
 
     if data.startswith("s:mode:"):
-      mode_txt = data.split(':')[2]
-      mode = GameMode(mode_txt)
+      mode_name = data.split(':')[2]
+      mode = GameMode[mode_name]
 
       if mode == GameMode.RANDOM:
         user = await get_user_by_id(update.effective_user.id)
@@ -324,7 +333,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
   elif session.game_substate == SetupSubstate.FINISHED:
     if data == "g:start_round":
       game.state = GameState.INFORM
-      session.game_substate = None
+      set_all_substates(game, None, set_waited = False)
       return True
 
   return False

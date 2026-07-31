@@ -5,7 +5,7 @@ from flows.mode_settings import handle_mode_settings
 from models.game import Game
 from models.session import Session
 from flows.states import GameState
-from flows.substates import AnyCategorySettingsSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
+from flows.substates import AnyCategorySettingsSubstate, InterruptSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
 from flows.category_settings import handle_category_settings
 from flows.language_settings import handle_language_settings
 from flows.setup import handle_setup
@@ -18,9 +18,11 @@ from flows.vote_words import handle_vote_words
 from flows.guess_word import handle_guess_word
 from flows.guess_teams import handle_guess_teams
 from flows.guess_outsider import handle_guess_outsider
+from flows.paused import handle_paused
+from flows.choose_player import handle_choose_player
 from handlers.utils import get_user_game
 from texts import set_lang, t, b
-from adapters.telegram.messaging import edit_message
+from adapters.telegram.messaging import delete_popup, edit_message
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 from data.runtime_manager import *
 
@@ -36,8 +38,29 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
 
   logger.info(f"User {user.id} | game: {game.id if game else None} | state: {game.state if game else None} | data: {data}")
 
-  # --- init game ---
-  if data == "s:setup_game":
+  popups = []
+  if game and game.popup_message_id: popups.append(game.popup_message_id)
+  if session and session.popup_message_id: popups.append(session.popup_message_id)
+  
+  # --- interruptions ---
+  if session and session.interrupt_substate == InterruptSubstate.REMOVE_PLAYER:
+    if query.message.message_id not in popups:
+      await query.answer("This action is no longer valid.", show_alert = False)
+      return
+    state_changed = await handle_choose_player(update, game, session)
+
+  elif session and session.interrupt_substate is None and data and data.startswith("i:"):
+    if query.message.message_id not in popups:
+      await query.answer("This action is no longer valid.", show_alert = False)
+      return
+
+    if session and data == "i:session_alive":
+      await delete_popup(session)
+    if game and data == "i:game_running":
+      await delete_popup(game)
+  
+  # --- init a game ---
+  elif data == "s:setup_game":
     user, game = await get_user_game(update)
     if game:
       logger.info(f"Game {game.id} terminated to start new game for user {user.id}")
@@ -45,14 +68,17 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
 
     chat_id    = update.effective_chat.id
     message_id = update.effective_message.message_id
-    game       = await create_game(user_id=user.id, username=user.username)
-    session    = set_session(chat_id=chat_id, message_id=message_id, game_id=game.id, user_id=user.id, bot=context.bot)
+    game       = await create_game(user_id = user.id, username = user.username, owner_chat_id = chat_id)
+    session    = await set_session(chat_id=chat_id, message_id=message_id, game_id=game.id, user_id=user.id, bot = context.bot, job_queue = context.job_queue)
+    session.waited = True
+    game.set_reminder(context)
+
     game.state = GameState.SETUP
     logger.info(f"Game {game.id} created by user {user.id}")
 
     state_changed = await handle_setup(update, game, session)
 
-  # --- route to correct flow ---
+  # --- route to correct flow within a game ---
   elif game:
     if game.state == GameState.SETUP:
       state_changed = await handle_setup(update, game, session)
@@ -90,6 +116,11 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
     elif game.state == GameState.RESULTS:
       state_changed = await handle_results(update, game, session)
 
+    elif game.state == GameState.PAUSED:
+      state_changed = await handle_paused(update, game, session)
+
+  # --- Edits/Settings --- 
+
   elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate) or (session.game_substate == ModeSettingsSubstate.MAIN):
 
     if data == "e:done":
@@ -102,7 +133,7 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
 
       if session.game_substate is None:
         await edit_message(session, text=t("settings_saved"))
-        terminate_session(session=session)
+        await terminate_session(session=session)
       else:
         await update_user(user)
         await edit_message(session, text=t("choose_edit"), buttons=buttons)

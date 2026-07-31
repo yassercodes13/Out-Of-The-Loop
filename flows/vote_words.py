@@ -39,6 +39,7 @@ async def render_vote_result_screen(game: Game):
   buttons = [[InlineKeyboardButton(b("see_results"), callback_data="g:round_results")]]
 
   owner_session = get_session_of_owner(game=game)
+  owner_session.waited = True
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
   await edit_message(owner_session, text, buttons)
 
@@ -53,7 +54,7 @@ async def handle_vote_words(update: Update, game: Game, session: Session):
     game.sessions_ready = 0
     game.turn_index = 0
     reset_turn_indices(game)
-    set_all_substates(game, VoteWordsSubstate.START)
+    set_all_substates(game, VoteWordsSubstate.START, set_waited = True)
     await render_vote_words_start_screen(game)
 
   if (data == "g:start_voting" and session.game_substate == VoteWordsSubstate.START) or (session.game_substate == VoteWordsSubstate.VOTING and "_choice" in query.data):
@@ -102,6 +103,8 @@ async def handle_vote_words(update: Update, game: Game, session: Session):
 
   if session.game_substate == VoteWordsSubstate.RESULT:
     game.sessions_ready += 1
+    session.waited = False
+
     if game.sessions_ready < len(game.chat_ids):
       await render_waiting_result_screen(session)
       return False

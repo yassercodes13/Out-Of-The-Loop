@@ -1,16 +1,18 @@
 BUTTONS = {
 
   # --- universal ---
-  "confirm":            {"en": "Confirm",           "ar": "تأكيد"},
-  "continue":           {"en": "Continue",           "ar": "متابعة"},
-  "done":               {"en": "Done",               "ar": "تم"},
-  "back":               {"en": "Back",               "ar": "رجوع"},
-  "next":               {"en": "Next",               "ar": "التالي"},
-  "skip":               {"en": "Skip",               "ar": "تخطي"},
+  "confirm":            {"en": "Confirm",             "ar": "تأكيد"},
+  "continue":           {"en": "Continue",            "ar": "متابعة"},
+  "done":               {"en": "Done",                "ar": "تم"},
+  "back":               {"en": "Back",                "ar": "رجوع"},
+  "next":               {"en": "Next",                "ar": "التالي"},
+  "skip":               {"en": "Skip",                "ar": "تخطي"},
   "got_it":             {"en": "Got it!",             "ar": "فهمت!"},
   "yes_confirm":        {"en": "Yes, confirm",        "ar": "نعم، تأكيد"},
   "no_choose_again":    {"en": "No, choose again",    "ar": "لا، اختر مجدداً"},
-  "start":              {"en": "Start",              "ar": "ابدأ"},
+  "start":              {"en": "Start",               "ar": "ابدأ"},
+  "cancel":             {"en": "Cancel",              "ar": "الغاء"},
+  "all":                {"en": "All",                 "ar": "الكل"},
 
   # --- setup ---
   "start_game":         {"en": "Start Game",                       "ar": "ابدأ اللعبة"},
@@ -44,8 +46,8 @@ BUTTONS = {
   "start_voting":       {"en": "Start Voting",        "ar": "ابدأ التصويت"},
   "start_questioning":  {"en": "Start Questioning",   "ar": "ابدأ الأسئلة"},
   "vote_words":         {"en": "Vote Words",          "ar": "تصويت الكلمات"},
-  "guess_word":         {"en": "Guess Word",          "ar": "خمّن الكلمة"},
-  "guess_outsider":     {"en": "Guess Outsider",      "ar": "خمّن الغريب"},
+  "guess_word":         {"en": "Guess The Word",      "ar": "خمّن الكلمة"},
+  "guess_outsider":     {"en": "Guess The Outsider",  "ar": "خمّن الغريب"},
   "guess_team_members": {"en": "Guess Team Members",  "ar": "خمّن أعضاء الفريق"},
   "extra_questions":    {"en": "Extra Questions",     "ar": "أسئلة إضافية"},
   "extra_round":        {"en": "Extra Round",         "ar": "جولة إضافية"},
@@ -78,5 +80,8 @@ BUTTONS = {
   "language":           {"en": "Language",            "ar": "اللغة"},
   "language_en":        {"en": "English",             "ar": "الإنجليزية"},
   "language_ar":        {"en": "Arabic",              "ar": "العربية"},
+
+  # --- Check on Player ---
+  "yes":                {"en": "Yes",                 "ar": "نعم"}
 
 }

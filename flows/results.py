@@ -8,10 +8,10 @@ from texts import t, b
 from adapters.telegram.messaging import *
 
 
-# --- text builders (model returns structured data, we render it here) ---
+# --- text builders ---
 
 def render_report_text(game: Game) -> str:
-  text = t("round_report_header", round_number=game.round_number)
+  text = t("round_report_header", round_number = game.round_number)
   for key, kwargs in game.round_report:
     rendered = {
       k: t(f"role_{v}") if k == "target_role" else
@@ -19,6 +19,7 @@ def render_report_text(game: Game) -> str:
       for k, v in kwargs.items()
     }
     text += t(key, **rendered)
+  logger.info(f"Round report: {game.round_report}")
   return text
 
 
@@ -53,6 +54,7 @@ async def render_round_results_screen(session: Session, game: Game, text: str, b
   buttons = [[InlineKeyboardButton(b("round_report"), callback_data="g:report")]]
   if session.user_id == game.owner_id:
     buttons.append([InlineKeyboardButton(b("edit_score"), callback_data="g:edit_score")])
+    session.waited = True
     if game.num_rounds > game.round_number:
       buttons.append([InlineKeyboardButton(b("next_round"), callback_data="g:start_round")])
     else:
@@ -103,6 +105,7 @@ async def render_edit_player_score_screen(session: Session, player):
         )
       ]
     )
+  buttons.append([InlineKeyboardButton(b("done"), callback_data = "g:edit_score")])
   await edit_message(session, text, buttons)
 
 
@@ -114,32 +117,34 @@ async def handle_results(update: Update, game: Game, session: Session):
   refresh_all = False
 
   if data and data.startswith("g:round_results"):
-    if session.game_substate is None:
+    if session.game_substate is None:               # State entry point
       refresh_all = True
-      set_all_substates(game, ResultsSubstate.ROUND_RESULTS)
-    session.game_substate = ResultsSubstate.ROUND_RESULTS
-
-  elif data == "g:report" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
-    session.game_substate = ResultsSubstate.ROUND_REPORT
-
-  elif data == "g:end_results" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
-    session.game_substate = ResultsSubstate.FINAL_RESULTS
-
-  elif data == "g:edit_score" and session.game_substate == ResultsSubstate.ROUND_RESULTS:
-    session.game_substate = ResultsSubstate.EDIT_SCORE
+      set_all_substates(game, ResultsSubstate.ROUND_RESULTS, set_waited = False)
+    else: #Just getting back to Main Screen
+      session.game_substate = ResultsSubstate.ROUND_RESULTS
 
   elif data == "g:start_round" and session.game_substate in [ResultsSubstate.FINAL_RESULTS, ResultsSubstate.ROUND_RESULTS]:
     game.state = GameState.INFORM
-    set_all_substates(game, None)
+    set_all_substates(game, None, set_waited = False)
     return True
+
+  elif session.game_substate == ResultsSubstate.ROUND_RESULTS:
+    if data == "g:report":
+      session.game_substate = ResultsSubstate.ROUND_REPORT
+
+    elif data == "g:end_results":
+      session.game_substate = ResultsSubstate.FINAL_RESULTS
+
+    elif data == "g:edit_score":
+      session.game_substate = ResultsSubstate.EDIT_SCORE
 
 
   if session.game_substate == ResultsSubstate.ROUND_RESULTS and data and data.startswith("g:round_results"):
     rewrite = len(data.split(":")) > 2
-    text = render_result_text(game, rewrite=rewrite)
+    text = render_result_text(game, rewrite = rewrite)
     if rewrite:
       refresh_all = True
-    await render_round_results_screen(session, game, text, broadcast=refresh_all)
+    await render_round_results_screen(session, game, text, broadcast = refresh_all)
 
   elif session.game_substate == ResultsSubstate.ROUND_REPORT and data == "g:report":
     await render_round_report_screen(session, game)

@@ -1,15 +1,17 @@
+from models.role import Role
+
 class Player:
   def __init__(self, name, session_id, id = 0,):
     self.id = id
     self.name = name
     self.session_id = session_id
 
-    self.role = None
+    self.role: Role = None
     self.word = None
     self.last_rank = None
     self.pending_vote: Player = None
     self.votes_against: list[Player] = []
-    self.voted_on:Player = None
+    self.voted_on: Player = None
     self.saw_info = 0
     self.score = 0
     self.round_score = 0

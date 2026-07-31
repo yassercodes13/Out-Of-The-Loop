@@ -1,4 +1,4 @@
-from sqlalchemy import String, JSON
+from sqlalchemy import BigInteger, String, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from data.modes import GameMode
 from db.base import Base
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 class UserORM(Base):
   __tablename__ = "users"
 
-  id: Mapped[int] = mapped_column(primary_key=True)               # Telegram user id — no autoincrement needed
-  username: Mapped[str] = mapped_column(String, nullable=False)
+  id: Mapped[int] = mapped_column(BigInteger, primary_key=True)              # Telegram user id — no autoincrement needed
+  username: Mapped[str | None] = mapped_column(String, nullable=True)
   lang: Mapped[str] = mapped_column(String, default="en")
 
   random_modes_names: Mapped[list[str]] = mapped_column(JSON, default=list)

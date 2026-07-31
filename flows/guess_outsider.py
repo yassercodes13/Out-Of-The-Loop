@@ -1,4 +1,3 @@
-# flows/guess_outsider.py
 from models.game import Game
 from models.session import Session
 from flows.states import GameState
@@ -21,12 +20,11 @@ async def render_guess_outsider_screen(session: Session, game: Game):
   await edit_message(session, text, buttons)
 
 async def render_result_screen(game: Game, is_correct: bool):
-  result_message = t("outsider_correct") if is_correct else t("outsider_wrong", name=game.outsiders[0].name)
-  text = t("now_see_results", result_message=result_message)
-  
-  buttons = [[InlineKeyboardButton(b("see_results"), callback_data="g:round_results")]]
+  text = t("outsider_correct") if is_correct else t("outsider_wrong", name=game.outsiders[1].name)
+  buttons = [[InlineKeyboardButton(b("guess_word"), callback_data="g:guess_word:1")]]
   
   owner_session = get_session_of_owner(game=game)
+  owner_session.waited = True
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
   await edit_message(owner_session, text, buttons)
 
@@ -38,17 +36,18 @@ async def handle_guess_outsider(update: Update, game: Game, session: Session):
 
   if data == "g:guess_outsider" and session.game_substate is None:
     session.game_substate = GuessOutsiderSubstate.CHOOSING
+    session.waited = True
+
     await render_guess_outsider_screen(session, game)
     return False
 
   if session.game_substate == GuessOutsiderSubstate.CHOOSING and data and data.startswith("g:guess:"):
-    guessed_id = int(data.split(":")[2])
-    guessed_player = game.get_player_by_id(guessed_id)
+    guessed_id = int(data.split(":")[2])    
+    is_correct = game.check_suspect(guessed_id)
     
-    is_correct = (guessed_player == game.outsiders[0])
-    
+    session.waited = False
     await render_result_screen(game, is_correct)
     
-    game.state = GameState.RESULTS
+    game.state = GameState.GUESS_WORD
     set_all_substates(game, None)
     return False

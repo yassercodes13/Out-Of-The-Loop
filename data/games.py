@@ -5,9 +5,9 @@ import secrets
 from data.runtime import *
 from config import ID_ALPHABET, GAME_ID_LENGTH
   
-def make_game(owner_id: int):
+def make_game(owner_id: int, owner_chat_id: int):
   game_id = generate_game_id(GAME_ID_LENGTH)
-  game = Game(game_id, owner_id)
+  game = Game(game_id, owner_id, owner_chat_id)
   add_game(game)
   return game
 

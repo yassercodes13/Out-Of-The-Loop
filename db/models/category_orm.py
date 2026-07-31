@@ -1,4 +1,4 @@
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import BigInteger, String, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from db.base import Base
@@ -17,7 +17,7 @@ class CategoryORM(Base):
   description: Mapped[str] = mapped_column(String, default="")
   language: Mapped[str] = mapped_column(String, default="en")
   is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
-  owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+  owner_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True)
   owner: Mapped["UserORM | None"] = relationship(back_populates = "generated_categories")
   created_at: Mapped[datetime] = mapped_column(
     DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

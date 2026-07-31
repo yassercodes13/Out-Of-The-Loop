@@ -33,6 +33,7 @@ async def render_end_vote_screen(session: Session, game: Game, ready: bool):
 
     if ready:
       owner_session = get_session_of_owner(game=game)
+      owner_session.waited = True
       await edit_message(owner_session, t("done_voting"), buttons)
 
 async def render_confirm_vote_screen(session: Session, voter: Player, voted_player: Player):
@@ -67,7 +68,7 @@ async def handle_voting(update: Update, game: Game, session: Session):
     game.sessions_ready = 0
     game.turn_index = 0
     reset_turn_indices(game)
-    set_all_substates(game, VoteSubstate.SELECT)
+    set_all_substates(game, VoteSubstate.SELECT, set_waited = True)
     await render_start_vote_broadcast(session, game)
   
   elif data == 'g:revote':
@@ -76,7 +77,7 @@ async def handle_voting(update: Update, game: Game, session: Session):
   elif data == "g:reveal" and session.game_substate == VoteSubstate.END:
     game.count_votes()
     game.state = GameState.REVEAL
-    set_all_substates(game, None)
+    set_all_substates(game, None, set_waited = False)
     return True
 
   # --- confirmation ---
@@ -94,6 +95,7 @@ async def handle_voting(update: Update, game: Game, session: Session):
       game.sessions_ready += 1
      
       ready = True if game.sessions_ready >= len(game.chat_ids) else False
+      session.waited = False
       await render_end_vote_screen(session, game, ready)
       return False
 

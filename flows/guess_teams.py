@@ -28,7 +28,7 @@ async def render_guessing_screen(session: Session, game: Game):
     if p == detective:
       continue
     team = detective.team_guess[p.id]
-    team_display = t(f"team_{team.value}")
+    team_display = t(f"team_{team}")
     buttons.append([
       InlineKeyboardButton(
         t("player_team_toggle", p_name = p.name, team = team_display),
@@ -51,10 +51,11 @@ async def render_result_screen(game: Game):
     alphas = ", ".join([p.name for p in game.alphas]),
     betas  = ", ".join([p.name for p in game.betas])
   )
+  buttons = [[InlineKeyboardButton(b("vote_words"), callback_data="g:vote_words")]]
 
   owner_session = get_session_of_owner(game=game)
+  owner_session.waited = True
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
-  buttons = [[InlineKeyboardButton(b("vote_words"), callback_data="g:vote_words")]]
   await edit_message(owner_session, text, buttons)
 
 
@@ -65,6 +66,7 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
   data = query.data if query else None
 
   detective = game.detective
+  session.waited = True
 
   # --- START FLOW ---
   if data == "g:guess_teams" and session.game_substate is None:
@@ -75,7 +77,7 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
     }
 
     session.game_substate = GuessTeamsSubstate.GUESSING
-    set_all_substates(game, GuessTeamsSubstate.WAITING, exclude_chat_ids=[session.chat_id])
+    set_all_substates(game, GuessTeamsSubstate.WAITING, exclude_chat_ids = [session.chat_id])
 
     await render_detective_waiting_screen(game, session)
     return False
@@ -103,13 +105,13 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
       else:
         detective.sus_betas.append(p)
 
-    set_all_substates(game, GuessTeamsSubstate.RESULT)
+    set_all_substates(game, GuessTeamsSubstate.RESULT, set_waited = False)
 
   # --- MOVE TO NEXT PHASE ---
 
   elif data == "g:vote_words" and session.game_substate == GuessTeamsSubstate.RESULT:
     game.state = GameState.VOTE_WORDS
-    set_all_substates(game, None)
+    set_all_substates(game, None, set_waited = False)
     return True
 
   # --- RESULT SCREEN ---

@@ -9,13 +9,13 @@ from data.sessions import *
 #                 Game                 #
 ########################################
 
-async def create_game(user_id: int, username: str, lang: str = 'en'):
+async def create_game(user_id: int, username: str, owner_chat_id: int, lang: str = 'en'):
   user = await ensure_user(user_id = user_id, username = username, lang = lang)
   if user.game_id:
     await terminate_game(game_id = user.game_id)
   
-  game = make_game(owner_id = user_id)
-  user.game_id = game.id
+  game = make_game(owner_id = user_id, owner_chat_id = owner_chat_id)
+  add_user_to_game(user, game)
 
   return game
 
@@ -25,23 +25,26 @@ async def terminate_game(game: Game = None, game_id: str = None):
       return None
     
     game = get_game_by_id(game_id)
-    if not game:
-      return
+    if not game: return
 
   for cid in game.chat_ids:
-    terminate_session(chat_id=cid)
+    await terminate_session(chat_id=cid)
   
   for user_id in game.user_ids:
     user = await get_user_by_id(user_id)
     if user:
       user.game_id = None
 
-  return active_games.pop(game.id)
+  if game.reminder:
+    game.reminder.schedule_removal()
+    game.reminder = None
+    
+  return active_games.pop(game.id, None)
 
 
 async def get_game_of_user(user: User = None, user_id: int = None, username: str = None, lang: str = 'en'):
   if not user:
-    if not user_id or not username:
+    if not user_id:
       return None
     user = await ensure_user(user_id = user_id, username = username, lang = lang)
   
@@ -82,21 +85,20 @@ def add_user_to_game(user: User, game: Game):
 #               Session               #
 #######################################
 
-def set_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot, game_substate = None):
+async def set_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot, job_queue, game_substate = None):
   old_session = active_sessions.get(chat_id)
   if old_session:
-    terminate_session(old_session)
+    await terminate_session(old_session)
   
-  new_session = make_session(chat_id, message_id, game_id, user_id, bot, game_substate)
+  new_session = make_session(chat_id, message_id, game_id, user_id, bot, job_queue, game_substate)
 
   game = get_game_by_id(game_id)
-  if game:
-    if new_session.chat_id not in game.chat_ids:
-      game.chat_ids.append(new_session.chat_id)
-  
+  if game and new_session.chat_id not in game.chat_ids:
+    game.chat_ids.append(new_session.chat_id)
+
   return new_session
 
-def terminate_session(session: Session = None, chat_id: int = None):
+async def terminate_session(session: Session = None, chat_id: int = None):
   if not session:
     if not chat_id:
       return
@@ -105,6 +107,12 @@ def terminate_session(session: Session = None, chat_id: int = None):
     active_sessions.pop(session.chat_id, None)
   
   if session:
+    if session.reminder:
+      session.reminder.schedule_removal()
+    if session.user_id:
+      user = await get_user_by_id(session.user_id)
+      user.game_id = None
+    
     game = get_game_by_id(session.game_id)
     if game and session.chat_id in game.chat_ids:
       game.chat_ids.remove(session.chat_id)
@@ -155,10 +163,3 @@ def get_all_sessions(game: Game = None, game_id: str = None, excluded: list[int]
         sessions.append(session)
   
   return sessions
-
-
-def ensure_session(chat_id: int, message_id: int, game_id: str, user_id: int, bot):
-  session = get_session_of_chat(chat_id)
-  if not session:
-    session = set_session(chat_id, message_id, game_id, user_id, bot)
-  return session

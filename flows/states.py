@@ -13,3 +13,15 @@ class GameState(str, Enum):
   VOTE_WORDS = "vote_words"
   GUESS_TEAMS = "guess_teams"
   RESULTS = "results"
+  PAUSED = "paused"
+
+mid_game_states = [
+  GameState.INFORM,
+  GameState.QUESTION,
+  GameState.VOTE,
+  GameState.REVEAL,
+  GameState.GUESS_WORD,
+  GameState.GUESS_OUTSIDER,
+  GameState.VOTE_WORDS,
+  GameState.GUESS_TEAMS,
+]

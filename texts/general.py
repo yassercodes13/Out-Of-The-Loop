@@ -56,6 +56,11 @@ GENERAL_TEXTS = {
     "ar": "لم يُعثر على لعبة برمز {code}."
   },
 
+  "game_already_started": {
+    "en": "This game has already started. You cannot join mid‑game.",
+    "ar": "بدأت هذه اللعبة بالفعل. لا يمكنك الانضمام في منتصف اللعبة."
+  },
+
   "already_in_this_game": {
     "en": "You are already in this game.\nUse /game to see it.",
     "ar": "أنت بالفعل في هذه اللعبة.\nاستخدم /game لرؤيتها."
@@ -136,5 +141,48 @@ GENERAL_TEXTS = {
   "outsider_word_placeholder":{
     "en": "Hidden 🤫",
     "ar": "🤫 مخفية",
-  }
+  },
+
+  # --- Players Out ---
+
+  "you_became_owner": {
+    "en": "Owner left. You are the new owner.",
+    "ar": "غادر المشرف. انت المشرف الجديد.",
+  },
+
+  "game_paused_not_enough_players": {
+    "en": "Game is Paused.\nThere are no enough players to continue.",
+    "ar": "اللعبة متوقفة.\nلا يوجد عدد كافي من اللاعبين للاستكمال.",
+  },
+
+  "mode_no_longer_valid": {
+    "en": "The current modes list are no longer valid.\nbecause {players_names} left the game",
+    "ar": "قائمة الاوضاع الحالية لم تعد صالحة\nلأن {players_names} غادروا اللعبة.",
+  },
+
+  "player_left_waiting_owner": {
+    "en": "{players_names} left, waiting for owner to continue the game.",
+    "ar": "غادر {players_names}، بانتظار المشرف لاستكمال اللعبة.",
+  },
+
+  "player_left_ready_to_continue": {
+    "en": "{players_names} left, game is ready to continue.",
+    "ar": "غادر {players_names}، اللعبة جاهزة للاستكمال.",
+  },
+
+  "player_left_game_terminated": {
+    "en": "{players_names} left, game is terminated",
+    "ar": "غادر {players_names}، اللعبة انتهت.",
+  },
+
+  "choose_the_player" : {
+    "en" : "Choose the player",
+    "ar" : "اختر اللاعب"
+  },
+
+  "kick_inavailable" : {
+    "en" : "'Kick' is only available in multiple-phone mode.",
+    "ar" : "الامر 'kick' يمكن استعماله فقط في حال وجود عدة اجهزة"
+  } 
+  
 }

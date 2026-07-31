@@ -18,11 +18,11 @@ class SetupSubstate(str, Enum):
 # CATEGORY SETTINGS
 # ----------------------
 class CategorySettingsSubstate(str, Enum):
-  MAIN = "category_main"                          # Main category settings screen
-  DELETE = "delete"                      # Deleting a category (only for user generated categories)
-  CREATE = "create"                      # Creating a new category
-  VIEW = "view"                          # Viewing category words
-  TOGGLE = "toggle"        # Toggling category inclusion in random selection
+  MAIN = "category_main"                            # Main category settings screen
+  DELETE = "delete"                                 # Deleting a category (only for user generated categories)
+  CREATE = "create"                                 # Creating a new category
+  VIEW = "view"                                     # Viewing category words
+  TOGGLE = "toggle"                                 # Toggling category inclusion in random selection
 
 # ----------------------
 # MODE SETTINGS
@@ -35,6 +35,13 @@ class ModeSettingsSubstate(str, Enum):
 # ----------------------
 class LanguageSettingsSubstate(str, Enum):
   MAIN = "language_main"                          # Main language settings screen
+
+# ----------------------
+# INTERRUPT
+# ----------------------
+class InterruptSubstate(str, Enum):
+  REMOVE_PLAYER = "remove_player"               
+
 
 # ----------------------
 # INFORM

@@ -30,6 +30,8 @@ async def delete_user(user: User):
 
 async def update_user(user: User):
   if not user: return
+  game_id = user.game_id
   user = await user_repo.update_user(user)
   if user:
+    user.game_id = game_id
     active_users[user.id] = user

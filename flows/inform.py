@@ -12,7 +12,7 @@ from adapters.telegram.messaging import *
 # --- screen renderers ---
 
 async def render_round_info_screen(game: Game):
-  info = game.start_round()
+  info = game.start_round(reset_mode = True)
   text = t("round_info", round_number = info["round_number"], category = info["category"], mode = info["mode"]) 
   
   buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:start_informing")]]
@@ -59,6 +59,7 @@ async def render_end_inform_screen(session: Session, game: Game):
     )
     new_text = (extra_informs_owner + "\n\n" + t("all_ready")).strip()
     buttons = [[InlineKeyboardButton(b("start_questioning"), callback_data="g:start_question")]]
+    owner_session.waited = True
     await edit_message(owner_session, new_text, buttons)
 
     if session.user_id != owner_session.user_id:
@@ -95,7 +96,7 @@ async def handle_informing(update: Update, game: Game, session: Session):
   if data == "g:start_round" and session.game_substate is None: 
     game.sessions_ready = 0
     reset_turn_indices(game)
-    set_all_substates(game, InformSubstate.ROUND_INFO)
+    set_all_substates(game, InformSubstate.ROUND_INFO, set_waited = True)
     
     await render_round_info_screen(game)
     return False
@@ -121,13 +122,14 @@ async def handle_informing(update: Update, game: Game, session: Session):
   elif data == "g:start_question" and session.game_substate == InformSubstate.END:
     session.turn_index = 0
     game.state = GameState.QUESTION
-    set_all_substates(game, None)
+    set_all_substates(game, None, set_waited = False)
     return True
 
   # ---- END CONDITION ----
   if session.turn_index >= len(session.players) and session.game_substate != InformSubstate.END:
     session.game_substate = InformSubstate.END
     game.sessions_ready += 1
+    session.waited = False
     
     await render_end_inform_screen(session, game)
     return False

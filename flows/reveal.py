@@ -18,6 +18,8 @@ async def render_single_outsider_screen(game: Game):
     [InlineKeyboardButton(b("guess_word"), callback_data ="g:guess_word:0")]
   ]
   outsider_session = get_session_of_chat(outsiders[0].session_id)
+  outsider_session.waited = True
+
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[outsider_session.chat_id])
   await edit_message(outsider_session, text, buttons)
 
@@ -32,6 +34,7 @@ async def render_double_outsider_screen(game: Game):
   ]
 
   outsider_session = get_session_of_chat(outsiders[0].session_id)
+  outsider_session.waited = True
   await broadcast_message(game=game, mode="edit", text=reveal_text, exclude_chat_ids=[outsider_session.chat_id])
   await edit_message(outsider_session, choices_text, buttons)
 
@@ -42,6 +45,7 @@ async def render_detective_reveal_screen(game: Game):
   ]
 
   detective_session = get_session_of_chat(game.detective.session_id)
+  detective_session.waited = True
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[detective_session.chat_id])
   await edit_message(detective_session, text, buttons)
 
@@ -53,7 +57,8 @@ async def render_teams_reveal_screen(game: Game):
     [InlineKeyboardButton(b("vote_words"), callback_data="g:vote_words")]
   ]
 
-  owner_session = get_session_of_owner(game=game)
+  owner_session = get_session_of_owner(game = game)
+  owner_session.waited = True
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
   await edit_message(owner_session, text, buttons)
 
@@ -66,47 +71,32 @@ async def handle_reveal(update: Update, game: Game, session: Session):
 
   if data == "g:reveal" and session.game_substate is None:
     game.sessions_ready = 0
-    set_all_substates(game, RevealSubstate.SHOW_RESULT)
-  
-  if session.game_substate == RevealSubstate.CHOICE:      # Branching
-    set_all_substates(game, None)
-    if data == "g:guess_outsider":
-      game.state = GameState.GUESS_OUTSIDER
-      return True
-    elif data and data.startswith("g:guess_word:"):
-      game.state = GameState.GUESS_WORD
-      return True
-    elif data == "g:vote_words":
-      game.state = GameState.VOTE_WORDS
-      return True
-    elif data == "g:guess_teams":
-      game.state = GameState.GUESS_TEAMS
-      return True
-
-    return False
-
-  if session.game_substate == RevealSubstate.SHOW_RESULT:
-
     outsiders = game.outsiders
-    
+    set_all_substates(game, RevealSubstate.CHOICE, set_waited = False)
+
     if len(outsiders) == 1:
       await render_single_outsider_screen(game)
-      set_all_substates(game, RevealSubstate.CHOICE)
-      return False
     
     elif len(outsiders) == 2:
       await render_double_outsider_screen(game)
-      set_all_substates(game, RevealSubstate.CHOICE)
-      return False
 
     elif game.mode == GameMode.TEAMS and game.detective:
       await render_detective_reveal_screen(game)
-      set_all_substates(game, RevealSubstate.CHOICE)
-      return False
       
     elif game.mode == GameMode.TEAMS and not game.detective:
       await render_teams_reveal_screen(game)
-      set_all_substates(game, RevealSubstate.CHOICE)
-      return False
 
     return False
+  
+  elif session.game_substate == RevealSubstate.CHOICE:      # Branching
+    set_all_substates(game, None, set_waited = False)
+    if data and data.startswith("g:guess_word:"):
+      game.state = GameState.GUESS_WORD
+    elif data == "g:guess_outsider":
+      game.state = GameState.GUESS_OUTSIDER
+    elif data == "g:vote_words":
+      game.state = GameState.VOTE_WORDS
+    elif data == "g:guess_teams":
+      game.state = GameState.GUESS_TEAMS
+
+    return True

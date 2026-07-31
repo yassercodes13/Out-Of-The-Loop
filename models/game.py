@@ -1,5 +1,6 @@
 import random
-from config import POINTS_SMALL, POINTS_STANDARD, POINTS_LARGE, NUM_WORD_CHOICES, ARROWS
+from telegram.ext import ContextTypes
+from config import POINTS_SMALL, POINTS_STANDARD, POINTS_LARGE, NUM_WORD_CHOICES, ARROWS, TIME_BEFORE_GAME_CHECK
 from data.modes import GameMode
 from flows.states import GameState
 from models.player import Player
@@ -7,14 +8,14 @@ from data.default_categories import *
 from models.role import Role
 from texts import t
 
-
 class Game:
 
-  def __init__(self, game_id, owner_id):
+  def __init__(self, game_id, owner_id, owner_chat_id):
     self.id        = game_id
     self.owner_id  = owner_id
+    self.owner_chat_id = owner_chat_id
     self.user_ids  = [owner_id]
-    self.chat_ids: list[int] = []
+    self.chat_ids: list[int] = [owner_chat_id]
 
     # Game
     self.type = None
@@ -34,7 +35,7 @@ class Game:
     self.mode: GameMode = None
     self.category: Category = None
     self.word: str = None
-    self.pairs: list[tuple] = []
+    self.pairs: list[tuple[Player]] = []
     self.choices: list[str] = []
     self.round_report: list[tuple] = []  # list of (text_key, kwargs) for the flow to render
     self.word_guesser: Player = None
@@ -60,10 +61,15 @@ class Game:
     self.turn_index = 0
     self.next_player_id = 0
     self.names = []
+    self.reminder = None
+    self.popup_message_id: int = None
 
 
-  def start_round(self):
+  def start_round(self, reset_mode):
     self.reset_round()
+    if reset_mode:
+      self.random_mode = False
+
     for player in self.players:
       player.clear_leftovers()
 
@@ -251,7 +257,7 @@ class Game:
       self.round_report.append(("report_detective_voted", {
         "name":        self.detective.name,
         "target":      self.detective.voted_on.name,
-        "target_role": self.detective.voted_on.role,  # role identifier — flow translates
+        "target_role": self.detective.voted_on.role.value,
       }))
 
     if self.outsiders:
@@ -268,8 +274,10 @@ class Game:
       return False
 
 
-  def check_suspect(self, suspect: Player):
+  def check_suspect(self, suspect_id: int):
     guesser = self.outsiders[0]
+    suspect = self.get_player_by_id(suspect_id)
+    
     if suspect.role == Role.OUTSIDER:
       guesser.round_score += POINTS_LARGE
       self.round_report.append(("report_correct_outsider", {"name": guesser.name, "suspect": suspect.name}))
@@ -398,7 +406,7 @@ class Game:
       else:                            arrow = ARROWS.get("same")
 
       p.last_rank = current_rank
-      rows.append({"arrow": arrow, "name": p.name, "role": p.role, "score": score})
+      rows.append({"arrow": arrow, "name": p.name, "role": p.role.value, "score": score})
 
     self.round_result_data = rows
     return rows
@@ -462,3 +470,16 @@ class Game:
 
   def remove_player(self, id: int):
     self.players = [p for p in self.players if p.id != id]
+
+  def set_reminder(self, context: ContextTypes.DEFAULT_TYPE):
+    """Sets a Reminder/Job if None and Updates if Any Exists"""
+    if self.reminder:
+      self.reminder.schedule_removal()
+    
+    from adapters.telegram.jobs import game_reminder_callback
+    if self.id:
+      self.reminder = context.job_queue.run_once(
+        callback = game_reminder_callback,
+        chat_id = self.owner_chat_id,
+        when = TIME_BEFORE_GAME_CHECK,
+      )

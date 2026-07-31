@@ -1,12 +1,14 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
+from flows.choose_player import render_players_screen
 from flows.utils import *
 from flows.states import GameState
-from flows.substates import SetupSubstate
+from flows.substates import InterruptSubstate, SetupSubstate
 from handlers.utils import *
 from texts import t, b, set_lang
 from adapters.telegram.messaging import *
+from services.game_services import remove_players
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +77,13 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=t("already_in_this_game"))
     return
 
+  if game.state != GameState.SETUP:
+    await context.bot.send_message(
+      chat_id=update.effective_chat.id,
+      text=t("game_already_started")
+    )
+    return
+
   if current_game:
     logger.info(f"User {user.id} left game {current_game.id} to join game {game.id}")
     await terminate_game(current_game)
@@ -83,14 +92,16 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   msg = await context.bot.send_message(chat_id=update.effective_chat.id, text=t("input_names", slots=slots))
 
   add_user_to_game(user, game)
-  session = set_session(
-    chat_id=update.effective_chat.id,
-    message_id=msg.message_id,
-    game_id=game.id,
-    user_id=user.id,
-    bot=context.bot,
-    game_substate=SetupSubstate.INPUT_NAMES
+  session = await set_session(
+    chat_id = update.effective_chat.id,
+    message_id = msg.message_id,
+    game_id = game.id,
+    user_id = user.id,
+    bot = context.bot,
+    job_queue = context.job_queue, 
+    game_substate = SetupSubstate.INPUT_NAMES
   )
+  session.waited = True
   logger.info(f"User {user.id} joined game {game.id}")
 
   slots = empty_slots(game)
@@ -121,7 +132,7 @@ async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   buttons = [[InlineKeyboardButton(b("start_game"), callback_data='g:start_round')]]
   session = get_session_of_chat(update.effective_chat.id)
 
-  set_all_substates(game, SetupSubstate.FINISHED)
+  set_all_substates(game, SetupSubstate.FINISHED, set_waited = True)
   await broadcast_message(game=game, mode="edit", text=t("restart_game_broadcast"), exclude_chat_ids=[session.chat_id])
   await edit_message(session, t("restart_game_confirm"), buttons)
 
@@ -134,7 +145,8 @@ async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   session = get_session_of_chat(update.effective_chat.id)
-  await send_message(session, text=session.text, buttons=session.build_buttons(), parse_mode=session.parse_mode)
+  if session:
+    await send_message(session, text=session.text, buttons=session.build_buttons(), parse_mode=session.parse_mode)
 
 
 async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -163,18 +175,42 @@ async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
+  session: Session = await get_session_of_user(user_id = user.id, username = user.username)
   set_lang(user.lang)
 
-  if not await check_game(update, context, game):
+  if not await check_game(update, context, game): return
+  if not session:
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("not_in_a_game"))
     return
 
-  if await check_ownership(update, context, user, game):
-    logger.info(f"Game {game.id} ended — owner {user.id} left")
-    await broadcast_message(game=game, mode="edit", text=t("owner_left_game"))
-    await terminate_game(game)
-    return
+  if session.chat_id not in game.chat_ids: return
+
+  if len(session.players) == 1:
+    await remove_players(game, [p.id for p in session.players])
   else:
-    pass  # should do something TODO
+    session.interrupt_substate = InterruptSubstate.REMOVE_PLAYER
+    await render_players_screen(game, session, session.players, all_option=True)
+
+
+async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  user, game = await get_user_game(update)
+  set_lang(user.lang)
+
+  if not await check_game(update, context, game): return
+  if not await check_ownership(update, context, user, game): return
+
+  if len(game.chat_ids) < 2:
+    await context.bot.send_message(chat_id = update.effective_chat.id, text = t("kick_inavailable"))
+    return
+  
+  session: Session = await get_session_of_user(user_id = user.id, username = user.username)
+  if not session or session.chat_id not in game.chat_ids:
+    await update.effective_chat.send_message(text=t("not_in_a_game"))
+    return
+
+  session.interrupt_substate = InterruptSubstate.REMOVE_PLAYER
+  players = [p for p in game.players if p not in session.players]
+  await render_players_screen(game, session, players)
 
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -196,12 +232,13 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
   )
 
-  set_session(
+  await set_session(
     chat_id=update.effective_chat.id,
     message_id=new_message.message_id,
     game_id=None,
     user_id=update.effective_user.id,
     bot=context.bot,
+    job_queue=context.job_queue,
   )
 
 
@@ -219,6 +256,12 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   message_text = " ".join(args)
   sender_session = await get_session_of_user(user.id, user.username)
+  
+  game.set_reminder(context)
+  if sender_session:
+    sender_session.set_reminder(context = context)
+  
+
   for cid in game.chat_ids:
     session = get_session_of_chat(cid)
     if session == sender_session:
@@ -255,6 +298,8 @@ start_bot_handler        = CommandHandler('start', start_bot)
 reset_handler            = CommandHandler('restart', restart_game)
 start_new_game_handler   = CommandHandler('new', start_new_game)
 edit_settings_handler    = CommandHandler('settings', settings)
+leave_game_handler       = CommandHandler('leave', leave_game)
+kick_player_handler      = CommandHandler('kick', kick_player)
 broadcast_handler        = CommandHandler(["broadcast", "bc"], broadcast)
 help_callback_handler    = CallbackQueryHandler(help, pattern='help')
 del_message_handler      = CallbackQueryHandler(del_message, pattern='del_message')
@@ -269,6 +314,8 @@ user_commands_handlers = [
   end_handler,
   help_callback_handler,
   del_message_handler,
+  kick_player_handler,
+  leave_game_handler,
   broadcast_handler,
   edit_settings_handler,
 ]
