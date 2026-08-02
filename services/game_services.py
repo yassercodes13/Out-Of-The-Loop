@@ -1,4 +1,3 @@
-from telegram import InlineKeyboardButton
 from data.runtime_manager import get_session_of_chat, terminate_game, terminate_session, get_session_of_owner, get_user_by_id
 from flows.states import GameState, mid_game_states
 from flows.substates import SetupSubstate
@@ -7,8 +6,8 @@ from flows.setup import render_choose_mode_screen
 from flows.paused import render_paused_screen
 from models.game import Game
 from models.session import Session
-from texts import t, b
 from adapters.telegram.messaging import broadcast_message, edit_message, send_info_message
+from texts.refs import TextRef, Button
 
 async def remove_players(game: Game, player_ids: list[int]):
   """Single entry point for leave / kick / timeout. Caller decides which
@@ -42,7 +41,7 @@ async def remove_players(game: Game, player_ids: list[int]):
   
   if owner_left:
     if game.chat_ids:
-      await broadcast_message(game, "send", t("owner_left_game"))
+      await broadcast_message(game, "send", TextRef("owner_left_game"))
 
       new_owner_session = get_session_of_chat(game.chat_ids[0])
       new_owner = await get_user_by_id(new_owner_session.user_id)
@@ -51,11 +50,16 @@ async def remove_players(game: Game, player_ids: list[int]):
       game.owner_chat_id = new_owner_session.chat_id
       game.random_mode_options =  new_owner.random_modes
 
-      await send_info_message(bot = new_owner_session.bot, chat_id = new_owner_session.chat_id, text = t("you_became_owner"))
+      await send_info_message(
+        bot = new_owner_session.bot,
+        chat_id = new_owner_session.chat_id,
+        text = TextRef("you_became_owner"),
+        lang = new_owner.lang
+      )
 
   #TODO: With better joining logic this could be recoverable
   if (game.state == GameState.SETUP) or (not game.chat_ids):
-    await broadcast_message(game, "send", t("player_left_game_terminated", players_names = players_names))
+    await broadcast_message(game, "send", TextRef("player_left_game_terminated", {"players_names": players_names}))
     await terminate_game(game)
     return
 
@@ -87,7 +91,11 @@ async def remove_players(game: Game, player_ids: list[int]):
     set_all_substates(game, SetupSubstate.WAITING, exclude_chat_ids=[owner_session.chat_id])
 
     user = await get_user_by_id(owner_session.user_id)
-    await broadcast_message(game=game, mode="edit", text=t("mode_no_longer_valid", players_names = players_names), exclude_chat_ids=[owner_session.chat_id])
+    await broadcast_message(
+      game = game, mode = "edit",
+      text = TextRef("mode_no_longer_valid", {"players_names": players_names}),
+      exclude_chat_ids=[owner_session.chat_id]
+    )
     await render_choose_mode_screen(owner_session, user, mode_change=True)
     return
 
@@ -96,8 +104,12 @@ async def remove_players(game: Game, player_ids: list[int]):
     game.round_number -= 1
   game.state = GameState.INFORM
   owner_session.game_substate = None
-  buttons = [[InlineKeyboardButton(b("continue"), callback_data="g:start_round")]]
+  buttons = [[Button(TextRef("continue"), "g:start_round")]]
 
   owner_session.waited = True
-  await broadcast_message(game = game, mode = "edit", text = t("player_left_waiting_owner", players_names = players_names), exclude_chat_ids = [owner_session.chat_id])
-  await edit_message(owner_session, t("player_left_ready_to_continue", players_names = players_names), buttons)
+  await broadcast_message(
+    game = game, mode = "edit",
+    text = TextRef("player_left_waiting_owner", {"players_names": players_names}),
+    exclude_chat_ids = [owner_session.chat_id]
+  )
+  await edit_message(owner_session, TextRef("player_left_ready_to_continue", {"players_names": players_names}), buttons)

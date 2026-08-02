@@ -2,35 +2,35 @@ from models.game import Game
 from models.session import Session
 from flows.states import GameState
 from flows.substates import GuessWordSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from flows.utils import *
 from data.runtime_manager import get_session_of_owner
-from texts import t, b
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
 async def render_waiting_broadcast(session: Session, game: Game):
-  text = t("is_guessing", name = game.word_guesser.name)
+  text = TextRef("is_guessing", {"name": game.word_guesser.name})
   await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [session.chat_id])
 
 async def render_choose_word_screen(session: Session, game: Game):
   buttons = []
   for i, choice in enumerate(game.choices):
-    buttons.append([InlineKeyboardButton(choice, callback_data=f"g:choice:{i}")])
+    buttons.append([Button(TextRef("text", {"text" : choice}), f"g:choice:{i}")])
   
-  text = t("try_guess", name=game.word_guesser.name)
+  text = TextRef("try_guess", {"name": game.word_guesser.name})
   await edit_message(session, text, buttons)
 
 async def render_guess_result_screen(game: Game, word: str, result: bool):
   if result:
-    result_message = t("word_correct", word=word)
+    result_message = TextRef("word_correct", {"word": word})
   else:
-    result_message = t("word_wrong", word=word, correct_word=game.word)
-  
-  text = t("let's_see_results", result_message=result_message)
-  buttons = [[InlineKeyboardButton(b("see_results"), callback_data="g:round_results")]]
-  
+    result_message = TextRef("word_wrong", {"word": word, "correct_word": game.word})
+
+  text = TextRef("let's_see_results", {"result_message": result_message})
+  buttons = [[Button(TextRef("see_results"), "g:round_results")]]
+
   owner_session = get_session_of_owner(game=game)
   owner_session.waited = True
   

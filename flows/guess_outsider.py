@@ -2,11 +2,11 @@ from models.game import Game
 from models.session import Session
 from flows.states import GameState
 from flows.substates import GuessOutsiderSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from flows.utils import *
 from data.runtime_manager import get_session_of_owner
-from texts import t, b
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
@@ -14,18 +14,18 @@ async def render_guess_outsider_screen(session: Session, game: Game):
   buttons = []
   for p in game.players:
     if p != game.outsiders[0]:
-      buttons.append([InlineKeyboardButton(p.name, callback_data=f"g:guess:{p.id}")])
+      buttons.append([Button(TextRef("text", {"text": p.name}), f"g:guess:{p.id}")])
   
-  text = t("choose_outsider")
+  text = TextRef("choose_outsider")
   await edit_message(session, text, buttons)
 
 async def render_result_screen(game: Game, is_correct: bool):
-  text = t("outsider_correct") if is_correct else t("outsider_wrong", name=game.outsiders[1].name)
-  buttons = [[InlineKeyboardButton(b("guess_word"), callback_data="g:guess_word:1")]]
+  text = TextRef("outsider_correct") if is_correct else TextRef("outsider_wrong", {"name": game.outsiders[1].name})
+  buttons = [[Button(TextRef("guess_word"), "g:guess_word:1")]]
   
-  owner_session = get_session_of_owner(game=game)
+  owner_session = get_session_of_owner(game = game)
   owner_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  await broadcast_message(game = game, mode="edit", text = text, exclude_chat_ids = [owner_session.chat_id])
   await edit_message(owner_session, text, buttons)
 
 # --- dispatch ---

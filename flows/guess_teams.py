@@ -1,42 +1,38 @@
 from flows.utils import *
 from flows.states import GameState
 from flows.substates import GuessTeamsSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from data.runtime_manager import get_session_of_owner
 from models.role import Role
-from texts import t, b
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
 async def render_detective_waiting_screen(game: Game, session: Session):
   await broadcast_message(
-    game=game, mode="edit",
-    text=t("detective_will_guess"),
+    game = game, mode = "edit",
+    text = TextRef("detective_will_guess"),
     exclude_chat_ids=[session.chat_id]
   )
-  buttons = [[InlineKeyboardButton(b("start"), callback_data="g:start")]]
-  await edit_message(session, t("your_turn_to_guess", detective_name=game.detective.name), buttons)
+  buttons = [[Button(TextRef("start"), "g:start")]]
+  await edit_message(session, TextRef("your_turn_to_guess", {"detective_name": game.detective.name}), buttons)
 
 
 async def render_guessing_screen(session: Session, game: Game):
   detective = game.detective
-  text = t("assign_teams")
+  text = TextRef("assign_teams")
   buttons = []
 
   for p in game.players:
     if p == detective:
       continue
     team = detective.team_guess[p.id]
-    team_display = t(f"team_{team}")
     buttons.append([
-      InlineKeyboardButton(
-        t("player_team_toggle", p_name = p.name, team = team_display),
-        callback_data = f"g:toggle_{p.id}"
-      )
+      Button(TextRef(f"player_team_{team}", {"p_name":p.name}), f"g:toggle_{p.id}")
     ])
 
-  buttons.append([InlineKeyboardButton(b("confirm"), callback_data="g:confirm_guess")])
+  buttons.append([Button(TextRef("confirm"), "g:confirm_guess")])
   await edit_message(session, text, buttons)
 
 
@@ -45,13 +41,15 @@ async def render_result_screen(game: Game):
   sign = '+' if result['score'] > 0 else ''
   result_text = f"{result['correct']}/{result['total']} ({sign}{result['score']}P)"
 
-  text = t(
+  text = TextRef(
     "guess_result",
-    result_text = result_text,
-    alphas = ", ".join([p.name for p in game.alphas]),
-    betas  = ", ".join([p.name for p in game.betas])
+    {
+      "result_text": result_text,
+      "alphas": ", ".join([p.name for p in game.alphas]),
+      "betas": ", ".join([p.name for p in game.betas])
+    }
   )
-  buttons = [[InlineKeyboardButton(b("vote_words"), callback_data="g:vote_words")]]
+  buttons = [[Button(TextRef("vote_words"), "g:vote_words")]]
 
   owner_session = get_session_of_owner(game=game)
   owner_session.waited = True

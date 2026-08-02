@@ -3,19 +3,19 @@ from models.session import Session
 from data.modes import GameMode
 from flows.states import GameState
 from flows.substates import RevealSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from flows.utils import *
-from texts import t, b
 from data.runtime_manager import get_session_of_owner, get_session_of_chat
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
 async def render_single_outsider_screen(game: Game):
   outsiders = game.outsiders
-  text = t("single_outsider_reveal", name=outsiders[0].name)
+  text = TextRef("single_outsider_reveal", {"name" : outsiders[0].name})
   buttons = [
-    [InlineKeyboardButton(b("guess_word"), callback_data ="g:guess_word:0")]
+    [Button(TextRef("guess_word"), "g:guess_word:0")]
   ]
   outsider_session = get_session_of_chat(outsiders[0].session_id)
   outsider_session.waited = True
@@ -25,12 +25,15 @@ async def render_single_outsider_screen(game: Game):
 
 async def render_double_outsider_screen(game: Game):
   outsiders = game.outsiders
-  reveal_text = t("most_voted_outsider_reveal", name=outsiders[0].name)
-  choices_text = reveal_text + t("double_outsider_choices", name=outsiders[0].name)
+  reveal_text = [
+    TextRef("most_voted_outsider_reveal", {"name":outsiders[0].name})
+  ]
+
+  choices_text = reveal_text + [TextRef("double_outsider_choices", {"name":outsiders[0].name})]
 
   buttons = [
-    [InlineKeyboardButton(b("guess_word"), callback_data="g:guess_word:0")],
-    [InlineKeyboardButton(b("guess_outsider"), callback_data="g:guess_outsider")]
+    [Button(TextRef("guess_word"), "g:guess_word:0")],
+    [Button(TextRef("guess_outsider"), "g:guess_outsider")]
   ]
 
   outsider_session = get_session_of_chat(outsiders[0].session_id)
@@ -39,9 +42,9 @@ async def render_double_outsider_screen(game: Game):
   await edit_message(outsider_session, choices_text, buttons)
 
 async def render_detective_reveal_screen(game: Game):
-  text = t("detective_reveal", name=game.detective.name)
+  text = TextRef("detective_reveal", {"name" : game.detective.name})
   buttons = [
-    [InlineKeyboardButton(b("guess_team_members"), callback_data="g:guess_teams")]
+    [Button(TextRef("guess_team_members"), "g:guess_teams")]
   ]
 
   detective_session = get_session_of_chat(game.detective.session_id)
@@ -52,9 +55,9 @@ async def render_detective_reveal_screen(game: Game):
 async def render_teams_reveal_screen(game: Game):
   alphas_str = ', '.join([p.name for p in game.alphas])
   betas_str = ', '.join([p.name for p in game.betas])
-  text = t("teams_reveal", alphas=alphas_str, betas=betas_str)
+  text = TextRef("teams_reveal", {"alphas" : alphas_str, "betas" : betas_str})
   buttons = [
-    [InlineKeyboardButton(b("vote_words"), callback_data="g:vote_words")]
+    [Button(TextRef("vote_words"), "g:vote_words")]
   ]
 
   owner_session = get_session_of_owner(game = game)

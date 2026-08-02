@@ -3,87 +3,86 @@ from flows.utils import *
 from adapters.telegram.messaging import *
 from flows.states import GameState
 from flows.substates import CategorySettingsSubstate, SetupSubstate
-from telegram import InlineKeyboardButton
 from data.runtime_manager import *
 from handlers.utils import *
 from data.default_categories import default_categories
 from models.category import Category
-from texts import t, b
+from texts.refs import TextRef, Button
 from config import CATEGORIES_PER_PAGE, MIN_LINES_FOR_CATEGORY, MIN_UNIQUE_WORDS
 
 
 # --- screen renderers ---
 
 async def render_category_settings_main_screen(session: Session, game: Game):
-  text = t("what_to_do")
+  text = TextRef("what_to_do")
   buttons = [
-    [InlineKeyboardButton(b("change_random_categories"), callback_data="e:toggle")],
-    [InlineKeyboardButton(b("create_category"), callback_data="e:create")],
-    [InlineKeyboardButton(b("delete_category"), callback_data="e:delete")],
-    [InlineKeyboardButton(b("view_category"), callback_data="e:view")],
+    [Button(TextRef("change_random_categories"), "e:toggle")],
+    [Button(TextRef("create_category"), "e:create")],
+    [Button(TextRef("delete_category"), "e:delete")],
+    [Button(TextRef("view_category"), "e:view")],
   ]
   if game:
-    buttons.append([InlineKeyboardButton(b("back_to_category_selection"), callback_data="s:choose_category")])
+    buttons.append([Button(TextRef("back_to_category_selection"), "s:choose_category")])
   else:
-    buttons.append([InlineKeyboardButton(b("done"), callback_data="e:done")])
+    buttons.append([Button(TextRef("done"), "e:done")])
   await edit_message(session, text, buttons)
 
 
 async def render_delete_list_screen_paged(session: Session, user: User, categories: list, start_idx: int):
-  text = t("select_category_to_delete")
+  text = TextRef("select_category_to_delete")
   buttons = make_category_buttons(start_idx, user, categories, callback_prefix="e:delete")
-  buttons.append([InlineKeyboardButton(b("back_to_category_settings"), callback_data="e:categories")])
+  buttons.append([Button(TextRef("back_to_category_settings"), "e:categories")])
   await edit_message(session, text, buttons)
 
 
 async def render_delete_confirm_screen(session: Session, category_title: str, idx: int):
-  text = t("confirm_delete", category_title=category_title)
+  text = TextRef("confirm_delete", {"category_title": category_title})
   buttons = [
-    [InlineKeyboardButton(b("yes_delete"), callback_data=f"e:delete_confirm:{idx}")],
-    [InlineKeyboardButton(b("no_keep"), callback_data="e:delete")]
+    [Button(TextRef("yes_delete"), f"e:delete_confirm:{idx}")],
+    [Button(TextRef("no_keep"), "e:delete")]
   ]
   await edit_message(session, text, buttons)
 
 
 async def render_deleted_screen(session: Session, category_title: str):
-  text = t("category_deleted", category_title=category_title)
+  text = TextRef("category_deleted", {"category_title": category_title})
   buttons = [
-    [InlineKeyboardButton(b("delete_another_category"), callback_data="e:delete")],
-    [InlineKeyboardButton(b("back_to_category_settings"), callback_data="e:categories")],
+    [Button(TextRef("delete_another_category"), "e:delete")],
+    [Button(TextRef("back_to_category_settings"), "e:categories")],
   ]
   await edit_message(session, text, buttons)
 
 
 async def render_toggle_screen(session: Session, user: User, all_categories: list, start_idx: int = 0):
-  text = t("toggle_random_categories")
+  text = TextRef("toggle_random_categories")
   buttons = make_category_buttons(start_idx, user, all_categories, show_marks=True, callback_prefix="e:toggle")
-  buttons.append([InlineKeyboardButton(b("done"), callback_data="e:categories")])
+  buttons.append([Button(TextRef("done"), "e:categories")])
   await edit_message(session, text, buttons)
 
 
 async def render_view_list_screen(session: Session, user: User, all_categories: list, start_idx: int = 0):
-  text = t("select_category_to_view")
+  text = TextRef("select_category_to_view")
   buttons = make_category_buttons(start_idx, user, all_categories, callback_prefix="e:view")
-  buttons.append([InlineKeyboardButton(b("back_to_category_settings"), callback_data="e:categories")])
+  buttons.append([Button(TextRef("back_to_category_settings"), "e:categories")])
   await edit_message(session, text, buttons)
 
 
 async def render_view_category_screen(session: Session, category):
   words = "\n".join(category.words)
-  text = t("view_category_detail", title=category.title, count=len(category.words), words=words)
-  buttons = [[InlineKeyboardButton(b("back_to_view_categories"), callback_data="e:view")]]
+  text = TextRef("view_category_detail", {"title": category.title, "count": len(category.words), "words": words})
+  buttons = [[Button(TextRef("back_to_view_categories"), "e:view")]]
   await edit_message(session, text, buttons)
 
 
 async def render_create_screen(session: Session):
-  text = t("create_category_prompt")
-  buttons = [[InlineKeyboardButton(b("back_to_category_settings"), callback_data="e:categories")]]
+  text = TextRef("create_category_prompt")
+  buttons = [[Button(TextRef("back_to_category_settings"), "e:categories")]]
   await edit_message(session, text, buttons)
 
 
 async def render_created_screen(session: Session, title: str, word_count: int, old_message):
-  text = t("category_created", title=title, word_count=word_count)
-  buttons = [[InlineKeyboardButton(b("back_to_category_settings"), callback_data="e:categories")]]
+  text = TextRef("category_created", {"title": title, "word_count": word_count})
+  buttons = [[Button(TextRef("back_to_category_settings"), "e:categories")]]
   await send_message(session, text, buttons, old_message=old_message, delete_old_message=True)
 
 
@@ -115,7 +114,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     if data == "e:delete" or data.startswith("e:next_cats:"):
       categories = user.generated_categories
       if not categories:
-        await query.answer(t("no_custom_categories"), show_alert=True)
+        await query.answer()
+        await send_popup_message(session, TextRef("no_custom_categories"), [[Button(TextRef("ok"), "i:ok")]], session)
         session.game_substate = CategorySettingsSubstate.MAIN
         return False
 
@@ -133,7 +133,14 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         deleted_cat = user.generated_categories[idx]
         await render_delete_confirm_screen(session, deleted_cat.title, idx)
       else:
-        await query.answer(t("invalid_category"), show_alert=False)
+        await query.answer()
+        await send_info_message(
+          session.bot,
+          session.chat_id,
+          TextRef("invalid_category"),
+          [[Button(TextRef("ok"), "i:ok")]],
+          user.lang
+        )
       return False
 
     elif data.startswith("e:delete_confirm:"):
@@ -153,7 +160,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         
         await render_deleted_screen(session, deleted_cat.title)
       else:
-        await query.answer(t("invalid_category"), show_alert=True)
+        await query.answer()
+        await send_popup_message(session, TextRef("invalid_category"), [[Button(TextRef("ok"), "i:ok")]], session)
       return False
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.TOGGLE] and data and (data.startswith("e:toggle") or data.startswith("e:next_cats:")):
@@ -170,7 +178,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       elif len(user.random_categories) > 2:
         user.random_categories.remove(category)
       else:
-        await query.answer(t("min_two_categories"), show_alert=True)
+        await query.answer()
+        await send_popup_message(session, TextRef("min_two_categories"), [[Button(TextRef("ok"), "i:ok")]], session)
         return False
 
     elif data.startswith("e:next_cats:"):
@@ -197,7 +206,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         category = all_categories[category_idx]
         await render_view_category_screen(session, category)
       else:
-        await query.answer(t("invalid_category"), show_alert=True)
+        await query.answer()
+        await send_popup_message(session, TextRef("invalid_category"), [[Button(TextRef("ok"), "i:ok")]], session)
       return False
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.CREATE] and data == "e:create":
@@ -208,13 +218,15 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
   elif session.game_substate == CategorySettingsSubstate.CREATE and update.message and update.message.reply_to_message:
     lines = update.message.text.splitlines()
     if len(lines) < MIN_LINES_FOR_CATEGORY:
-      await update.message.reply_text(t("create_too_few_lines"))
+      await query.answer()
+      await send_popup_message(session, TextRef("create_too_few_lines"), [[Button(TextRef("ok"), "i:ok")]], session)
       return False
 
     title = lines[0].capitalize()
     words = list(dict.fromkeys(w for w in lines[1:] if w.strip()))
     if len(words) < MIN_UNIQUE_WORDS:
-      await update.message.reply_text(t("create_too_few_words"))
+      await query.answer()
+      await send_popup_message(session, TextRef("create_too_few_words"), [[Button(TextRef("ok"), "i:ok")]], session)
       return False
 
     new_category = Category(title=title, words=words, owner_id=update.effective_user.id)
@@ -233,26 +245,26 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
 def make_category_buttons(start_idx: int, user: User, categories: list[Category], callback_prefix: str = "", show_random=False, show_marks=False):
   if show_random:
     buttons = [
-      [InlineKeyboardButton(text=f"{cat.title} (R)" if cat in user.random_categories else cat.title, callback_data=f"{callback_prefix}:{i}")]
+      [Button(TextRef("text", {"text":f"{cat.title} (R)" if cat in user.random_categories else cat.title}), f"{callback_prefix}:{i}")]
       for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
     ]
   elif show_marks:
     buttons = [
-      [InlineKeyboardButton(text=cat.title + (" ✔" if cat in user.random_categories else " ✘"), callback_data=f"{callback_prefix}:{i}")]
+      [Button(TextRef("text", {"text": cat.title + (" ✔" if cat in user.random_categories else " ✘")}), f"{callback_prefix}:{i}")]
       for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
     ]
   else:
     buttons = [
-      [InlineKeyboardButton(text=cat.title, callback_data=f"{callback_prefix}:{i}")]
+      [Button(TextRef("text", {"text": cat.title}), f"{callback_prefix}:{i}")]
       for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
     ]
 
   nav_buttons = []
   prefix = callback_prefix.split(':')[0] + ":"
   if start_idx != 0:
-    nav_buttons.append(InlineKeyboardButton(text = b("prev_page"), callback_data=f"{prefix}next_cats:{start_idx - CATEGORIES_PER_PAGE}"))
+    nav_buttons.append(Button(TextRef("prev_page"), f"{prefix}next_cats:{start_idx - CATEGORIES_PER_PAGE}"))
   if start_idx + CATEGORIES_PER_PAGE < len(categories):
-    nav_buttons.append(InlineKeyboardButton(text = b("next_page"), callback_data=f"{prefix}next_cats:{start_idx + CATEGORIES_PER_PAGE}"))
+    nav_buttons.append(Button(TextRef("next_page"), f"{prefix}next_cats:{start_idx + CATEGORIES_PER_PAGE}"))
   buttons.append(nav_buttons)
 
   return buttons

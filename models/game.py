@@ -6,7 +6,7 @@ from flows.states import GameState
 from models.player import Player
 from data.default_categories import *
 from models.role import Role
-from texts import t
+from texts.refs import TextRef, Button
 
 class Game:
 
@@ -179,7 +179,7 @@ class Game:
       random.shuffle(self.choices)
 
       for player in self.players:
-        player.word = self.word if player.role != Role.OUTSIDER else t("outsider_word_placeholder")
+        player.word = self.word if player.role != Role.OUTSIDER else TextRef("outsider_word_placeholder")
 
 
   def pair_players(self):
@@ -194,9 +194,9 @@ class Game:
     for insider in self.insiders:
       if insider.voted_on and insider.voted_on.role == Role.OUTSIDER:
         insider.round_score += POINTS_STANDARD
-        self.round_report.append(("report_insider_voted_outsider", {"name": insider.name, "target": insider.voted_on.name}))
+        self.round_report.append(TextRef("report_insider_voted_outsider", {"name": insider.name, "target": insider.voted_on.name}))
       elif insider.voted_on and insider.voted_on.role == Role.INSIDER:
-        self.round_report.append(("report_insider_voted_insider", {"name": insider.name, "target": insider.voted_on.name}))
+        self.round_report.append(TextRef("report_insider_voted_insider", {"name": insider.name, "target": insider.voted_on.name}))
 
     if self.spy:
       if self.spy.voted_on and self.spy.voted_on.role == Role.OUTSIDER:
@@ -204,60 +204,60 @@ class Game:
           if player.role == Role.INSIDER:
             self.spy.round_score += POINTS_SMALL
             player.round_score  -= POINTS_SMALL
-            self.round_report.append(("report_insider_voted_spy_minus", {"name": player.name, "target": player.voted_on.name}))
+            self.round_report.append(TextRef("report_insider_voted_spy_minus", {"name": player.name, "target": player.voted_on.name}))
       else:
         for player in self.spy.votes_against:
           if player.role == Role.INSIDER:
             self.spy.round_score -= POINTS_SMALL
             player.round_score  += POINTS_SMALL
-            self.round_report.append(("report_insider_voted_spy_plus", {"name": player.name, "target": player.voted_on.name}))
+            self.round_report.append(TextRef("report_insider_voted_spy_plus", {"name": player.name, "target": player.voted_on.name}))
 
       sign = '+' if self.spy.round_score > 0 else ''
-      self.round_report.append(("report_spy_voted", {
+      self.round_report.append(TextRef("report_spy_voted", {
         "name":        self.spy.name,
         "target":      self.spy.voted_on.name,
-        "target_role": self.spy.voted_on.role.value,   # role identifier — flow translates via t("role_X")
+        "target_role": TextRef(f"role_{self.spy.voted_on.role.value}"),
         "score":       f"{sign}{self.spy.round_score}",
       }))
 
     for outsider in self.outsiders:
       if outsider.voted_on:
-        self.round_report.append(("report_outsider_voted", {
+        self.round_report.append(TextRef("report_outsider_voted", {
           "name":        outsider.name,
           "target":      outsider.voted_on.name,
-          "target_role": outsider.voted_on.role.value,  # role identifier — flow translates
+          "target_role": TextRef(f"role_{outsider.voted_on.role.value}"),  # role identifier — flow translates
         }))
       if not outsider.votes_against:
         outsider.round_score += POINTS_SMALL
-        self.round_report.append(("report_outsider_no_votes", {"name": outsider.name}))
+        self.round_report.append(TextRef("report_outsider_no_votes", {"name": outsider.name}))
 
     for alpha in self.alphas:
       if   alpha.voted_on and alpha.voted_on.role == Role.BETA:
         alpha.round_score += POINTS_SMALL
-        self.round_report.append(("report_alpha_voted_beta",       {"name": alpha.name, "target": alpha.voted_on.name}))
+        self.round_report.append(TextRef("report_alpha_voted_beta",       {"name": alpha.name, "target": alpha.voted_on.name}))
       elif alpha.voted_on and alpha.voted_on.role == Role.ALPHA:
         alpha.round_score -= POINTS_SMALL
-        self.round_report.append(("report_alpha_voted_alpha",      {"name": alpha.name, "target": alpha.voted_on.name}))
+        self.round_report.append(TextRef("report_alpha_voted_alpha",      {"name": alpha.name, "target": alpha.voted_on.name}))
       elif alpha.voted_on and alpha.voted_on.role == Role.DETECTIVE:
         alpha.round_score -= POINTS_SMALL
-        self.round_report.append(("report_alpha_voted_detective",  {"name": alpha.name, "target": alpha.voted_on.name}))
+        self.round_report.append(TextRef("report_alpha_voted_detective",  {"name": alpha.name, "target": alpha.voted_on.name}))
 
     for beta in self.betas:
       if   beta.voted_on and beta.voted_on.role == Role.ALPHA:
         beta.round_score += POINTS_SMALL
-        self.round_report.append(("report_beta_voted_alpha",       {"name": beta.name, "target": beta.voted_on.name}))
+        self.round_report.append(TextRef("report_beta_voted_alpha",       {"name": beta.name, "target": beta.voted_on.name}))
       elif beta.voted_on and beta.voted_on.role == Role.BETA:
         beta.round_score -= POINTS_SMALL
-        self.round_report.append(("report_beta_voted_beta",        {"name": beta.name, "target": beta.voted_on.name}))
+        self.round_report.append(TextRef("report_beta_voted_beta",        {"name": beta.name, "target": beta.voted_on.name}))
       elif beta.voted_on and beta.voted_on.role == Role.DETECTIVE:
         beta.round_score -= POINTS_SMALL
-        self.round_report.append(("report_beta_voted_detective",   {"name": beta.name, "target": beta.voted_on.name}))
+        self.round_report.append(TextRef("report_beta_voted_detective",   {"name": beta.name, "target": beta.voted_on.name}))
 
     if self.detective:
-      self.round_report.append(("report_detective_voted", {
+      self.round_report.append(TextRef("report_detective_voted", {
         "name":        self.detective.name,
         "target":      self.detective.voted_on.name,
-        "target_role": self.detective.voted_on.role.value,
+        "target_role": TextRef(f"role_{self.detective.voted_on.role.value}"),
       }))
 
     if self.outsiders:
@@ -267,10 +267,10 @@ class Game:
   def check_word(self, word_choice: str):
     if word_choice == self.word:
       self.word_guesser.round_score += POINTS_STANDARD
-      self.round_report.append(("report_correct_word", {"name": self.word_guesser.name}))
+      self.round_report.append(TextRef("report_correct_word", {"name": self.word_guesser.name}))
       return True
     else:
-      self.round_report.append(("report_wrong_word", {"name": self.word_guesser.name}))
+      self.round_report.append(TextRef("report_wrong_word", {"name": self.word_guesser.name}))
       return False
 
 
@@ -280,11 +280,11 @@ class Game:
     
     if suspect.role == Role.OUTSIDER:
       guesser.round_score += POINTS_LARGE
-      self.round_report.append(("report_correct_outsider", {"name": guesser.name, "suspect": suspect.name}))
+      self.round_report.append(TextRef("report_correct_outsider", {"name": guesser.name, "suspect": suspect.name}))
       return True
     else:
       guesser.round_score -= POINTS_STANDARD
-      self.round_report.append(("report_wrong_outsider", {"name": guesser.name, "suspect": suspect.name}))
+      self.round_report.append(TextRef("report_wrong_outsider", {"name": guesser.name, "suspect": suspect.name}))
       return False
 
 
@@ -293,31 +293,31 @@ class Game:
       return None
 
     correct = 0
-    self.round_report.append(("report_detective_header", {}))
+    self.round_report.append(TextRef("report_detective_header"))
 
     for sus in self.detective.sus_alphas:
-      self.round_report.append(("report_detective_sus_alpha", {"name": sus.name}))
+      self.round_report.append(TextRef("report_detective_sus_alpha", {"name": sus.name}))
       if sus in self.alphas:
         self.detective.round_score += POINTS_SMALL
-        self.round_report.append(("report_detective_correct", {}))
+        self.round_report.append(TextRef("report_detective_correct"))
         correct += 1
       else:
         self.detective.round_score -= POINTS_SMALL
-        self.round_report.append(("report_detective_wrong", {}))
+        self.round_report.append(TextRef("report_detective_wrong"))
 
     for sus in self.detective.sus_betas:
-      self.round_report.append(("report_detective_sus_beta", {"name": sus.name}))
+      self.round_report.append(TextRef("report_detective_sus_beta", {"name": sus.name}))
       if sus in self.betas:
         self.detective.round_score += POINTS_SMALL
-        self.round_report.append(("report_detective_correct", {}))
+        self.round_report.append(TextRef("report_detective_correct"))
         correct += 1
       else:
         self.detective.round_score -= POINTS_SMALL
-        self.round_report.append(("report_detective_wrong", {}))
+        self.round_report.append(TextRef("report_detective_wrong"))
 
     round_score = self.detective.round_score  # save before add_up_score() resets it to 0
     sign = '+' if round_score > 0 else ''
-    self.round_report.append(("report_detective_overall", {"score": f"{sign}{round_score}"}))
+    self.round_report.append(TextRef("report_detective_overall", {"score": f"{sign}{round_score}"}))
     self.detective.add_up_score()
 
     return {
@@ -339,19 +339,19 @@ class Game:
         top_voted_words.append(word)
 
     if len(top_voted_words) > 1:
-      tie_entries = [("report_team_tie", {"words": ", ".join(top_voted_words), "votes": most_votes})]
+      tie_entries = [TextRef("report_team_tie", {"words": ", ".join(top_voted_words), "votes": most_votes})]
     alpha_guess = top_voted_words[0] if len(top_voted_words) == 1 else random.choice(top_voted_words)
 
     if alpha_guess == self.beta_word:
-      mini_report.append(("report_team_correct", {"team": Role.ALPHA.value, "word": alpha_guess}))
+      mini_report.append(TextRef("report_team_correct", {"team": TextRef(f"team_{Role.ALPHA.value}"), "word": alpha_guess}))
       mini_report += tie_entries
-      mini_report.append(("report_team_scored_plus", {}))
+      mini_report.append(TextRef("report_team_scored_plus"))
       for alpha in self.alphas:
         alpha.round_score += POINTS_SMALL
     else:
-      mini_report.append(("report_team_wrong", {"team": Role.ALPHA.value, "word": alpha_guess}))
+      mini_report.append(TextRef("report_team_wrong", {"team": TextRef(f"team_{Role.ALPHA.value}"), "word": alpha_guess}))
       mini_report += tie_entries
-      mini_report.append(("report_team_scored_minus", {}))
+      mini_report.append(TextRef("report_team_scored_minus"))
       for alpha in self.alphas:
         alpha.round_score -= POINTS_SMALL
 
@@ -364,19 +364,19 @@ class Game:
         top_voted_words.append(word)
 
     if len(top_voted_words) > 1:
-      tie_entries = [("report_team_tie", {"words": ", ".join(top_voted_words), "votes": most_votes})]
+      tie_entries = [TextRef("report_team_tie", {"words": ", ".join(top_voted_words), "votes": most_votes})]
     beta_guess = top_voted_words[0] if len(top_voted_words) == 1 else random.choice(top_voted_words)
 
     if beta_guess == self.alpha_word:
-      mini_report.append(("report_team_correct", {"team": Role.BETA.value, "word": beta_guess}))
+      mini_report.append(TextRef("report_team_correct", {"team": TextRef(f"team_{Role.BETA.value}"), "word": beta_guess}))
       mini_report += tie_entries
-      mini_report.append(("report_team_scored_plus", {}))
+      mini_report.append(TextRef("report_team_scored_plus"))
       for beta in self.betas:
         beta.round_score += POINTS_SMALL
     else:
-      mini_report.append(("report_team_wrong", {"team": Role.BETA.value, "word": beta_guess}))
+      mini_report.append(TextRef("report_team_wrong", {"team": TextRef(f"team_{Role.BETA.value}"), "word": beta_guess}))
       mini_report += tie_entries
-      mini_report.append(("report_team_scored_minus", {}))
+      mini_report.append(TextRef("report_team_scored_minus"))
       for beta in self.betas:
         beta.round_score -= POINTS_SMALL
 
@@ -406,7 +406,7 @@ class Game:
       else:                            arrow = ARROWS.get("same")
 
       p.last_rank = current_rank
-      rows.append({"arrow": arrow, "name": p.name, "role": p.role.value, "score": score})
+      rows.append({"arrow": arrow, "name": p.name, "role": TextRef(f"role_{p.role.value}"), "score": score})
 
     self.round_result_data = rows
     return rows
@@ -424,8 +424,8 @@ class Game:
     self.final_result_data = {
       "tie":           winning_score == losing_score,
       "winning_score": winning_score,
-      "winners":       winners,
-      "losers":        losers,
+      "winners":       [name for name in winners],
+      "losers":        [name for name in losers],
     }
     return self.final_result_data
 

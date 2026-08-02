@@ -1,23 +1,23 @@
 from data.modes import GameMode
 from flows.states import GameState
 from flows.substates import QuestionSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from flows.utils import *
 from data.runtime_manager import get_session_of_chat, get_session_of_owner
-from texts import t, b
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
 async def render_end_questions_screen(session: Session, game: Game):
   if game.mode == GameMode.TEAMS:
-    text = t("ready_vote_teams")
+    text = TextRef("ready_vote_teams")
   else:
-    text = t("ready_vote_outsider")
+    text = TextRef("ready_vote_outsider")
 
   buttons = [
-    [InlineKeyboardButton(b("start_voting"), callback_data="g:start_vote")],
-    [InlineKeyboardButton(b("extra_questions"), callback_data="g:extra_questions")],
+    [Button(TextRef("start_voting"), "g:start_vote")],
+    [Button(TextRef("extra_questions"), "g:extra_questions")],
   ]
 
   await edit_message(session, text, buttons)
@@ -25,14 +25,14 @@ async def render_end_questions_screen(session: Session, game: Game):
 
 async def render_ask_question_screen(asker_session: Session, game: Game):
   pair = game.pairs[game.turn_index]
-  text = t("ask_question", asker=pair[0].name, answerer=pair[1].name)
+  text = TextRef("ask_question", {"asker" : pair[0].name, "answerer" : pair[1].name})
 
   buttons = [
-    [InlineKeyboardButton(b("next"), callback_data='g:next')],
+    [Button(TextRef("next"), "g:next")],
   ]
 
   if game.turn_index > 0:
-    buttons.append([InlineKeyboardButton(b("back"), callback_data="g:back")])
+    buttons.append([Button(TextRef("back"), "g:back")])
 
   await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[asker_session.chat_id])
   await edit_message(asker_session, text, buttons)

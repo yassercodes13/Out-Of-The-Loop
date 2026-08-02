@@ -24,8 +24,3 @@ def check_callback_data(callback_data: str, label: str = "callback_data"):
     logger.warning(f"{label} exceeds max callback_data size ({size}/{limit} bytes) — Telegram will reject this")
   elif size > limit * TELEGRAM_LENGTH_WARNING_THRESHOLD:
     logger.warning(f"{label} is close to max callback_data size ({size}/{limit} bytes)")
-
-def check_buttons(buttons: list[list[InlineKeyboardButton]], chat_id: str = "buttons"):
-  for row in buttons:
-    for btn in row:
-      check_callback_data(btn.callback_data, label=f"Callback data for button '{btn.text}' (Chat ID: {chat_id})")

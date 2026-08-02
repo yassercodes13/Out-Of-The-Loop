@@ -4,11 +4,9 @@ from data.games import get_game_by_id
 from data.runtime_manager import get_session_of_owner, terminate_game, terminate_session
 from flows.states import GameState
 from flows.utils import empty_slots
-from texts import t,b
-from telegram import InlineKeyboardButton
 from adapters.telegram.messaging import broadcast_message, delete_popup, send_popup_message
 from services.game_services import remove_players
-from models.game import Game
+from texts.refs import TextRef, Button
 
 async def reminder_callback(context: ContextTypes.DEFAULT_TYPE):
   from data.sessions import get_session_of_chat
@@ -21,9 +19,9 @@ async def reminder_callback(context: ContextTypes.DEFAULT_TYPE):
 
   if not session.waited: return
   
-  text = t("still_alive")
+  text = TextRef("still_alive")
   buttons = [
-    [InlineKeyboardButton(b("yes"), callback_data = "i:session_alive")],
+    [Button(TextRef("yes"), "i:session_alive")],
   ]
   await send_popup_message(session = session, text = text, buttons = buttons, target = session)
 
@@ -55,7 +53,7 @@ async def alive_check_callback(context: ContextTypes.DEFAULT_TYPE):
     else:
       await terminate_session(session)
       slots = empty_slots(game)
-      await broadcast_message(game=game, mode="edit", text=t("input_names", slots=slots))
+      await broadcast_message(game = game, mode = "edit", text = TextRef("input_names", {"slots": slots}))
     return
 
   players_ids = [p.id for p in session.players]
@@ -74,9 +72,9 @@ async def game_reminder_callback(context: ContextTypes.DEFAULT_TYPE):
   if not game: return
 
   game.reminder = None
-  text = t("still_running")
+  text = TextRef("still_running")
   buttons = [
-    [InlineKeyboardButton(b("yes"), callback_data = "i:game_running")],
+    [Button(TextRef("yes"), "i:game_running")],
   ]
 
   if game.owner_chat_id is None:

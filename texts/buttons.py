@@ -13,6 +13,7 @@ BUTTONS = {
   "start":              {"en": "Start",               "ar": "ابدأ"},
   "cancel":             {"en": "Cancel",              "ar": "الغاء"},
   "all":                {"en": "All",                 "ar": "الكل"},
+  "ok":                 {"en": "OK",                  "ar": "حسناً"},
 
   # --- setup ---
   "start_game":         {"en": "Start Game",                       "ar": "ابدأ اللعبة"},
@@ -57,6 +58,9 @@ BUTTONS = {
   "reveal_outsider":    {"en": "Reveal Outsider",     "ar": "كشف الغريب"},
   "reveal_detective":   {"en": "Reveal Detective",    "ar": "كشف المحقق"},
   "reveal_teams":       {"en": "Reveal Teams",        "ar": "كشف الفرق"},
+  "player_team_alpha": {"en": "{p_name} → Alpha?", "ar": "{p_name} → ألفا؟"},  
+  "player_team_beta":  {"en": "{p_name} → Beta?",      "ar": "{p_name} → بيتا؟"},
+
 
   # --- results ---
   "next_round":         {"en": "Next Round",          "ar": "الجولة التالية"},
@@ -80,8 +84,12 @@ BUTTONS = {
   "language":           {"en": "Language",            "ar": "اللغة"},
   "language_en":        {"en": "English",             "ar": "الإنجليزية"},
   "language_ar":        {"en": "Arabic",              "ar": "العربية"},
+  "language_en_chosen": {"en": "English ✅",          "ar": "✅ الإنجليزية"},
+  "language_ar_chosen": {"en": "Arabic ✅",           "ar": "✅ العربية"},
 
   # --- Check on Player ---
-  "yes":                {"en": "Yes",                 "ar": "نعم"}
+  "yes":                {"en": "Yes",                 "ar": "نعم"},
 
+  # --- custom text ---
+  "text" :              {"en": "{text}",                     "ar": "{text}"}  # used for dynamic text in buttons, e.g., player names, category titles, etc.
 }

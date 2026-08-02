@@ -4,85 +4,103 @@ from models.role import Role
 from models.session import Session
 from flows.states import GameState
 from flows.substates import InformSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from flows.utils import *
-from texts import t, b
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
 async def render_round_info_screen(game: Game):
   info = game.start_round(reset_mode = True)
-  text = t("round_info", round_number = info["round_number"], category = info["category"], mode = info["mode"]) 
-  
-  buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:start_informing")]]
-  await broadcast_message(game=game, mode="edit", text=text, buttons=buttons)
+  text = TextRef("round_info", {"round_number": info["round_number"], "category": info["category"], "mode": info["mode"]})
+
+  buttons = [[Button(TextRef("got_it"), "g:start_informing")]]
+  await broadcast_message(game = game, mode = "edit", text = text, buttons = buttons)
 
 async def render_show_info_screen(session: Session):
   player = session.players[session.turn_index]
   
   if player.role == Role.DETECTIVE:
-    text = t(
-      "show_info_detective",
-      p_name = player.name,
-      p_role = t(f"role_{player.role.value}"),
-      p_alpha_word = player.alpha_word,
-      p_beta_word = player.beta_word,
-      p_current_score = player.score
+    text = TextRef("show_info_detective", 
+      {
+        "p_name": player.name,
+        "p_role": TextRef(f"role_{player.role.value}"),
+        "p_alpha_word": player.alpha_word,
+        "p_beta_word": player.beta_word,
+        "p_current_score": player.score
+      }
     )
   
   else:
-    text = t(
-      "show_info_player",
-      p_name = player.name,
-      p_word = player.word,
-      p_prefix = t("your_team") if player.role in [Role.ALPHA, Role.BETA] else t("your_role"),
-      p_role = t(f"role_{player.role.value}"),
-      p_current_score = player.score
+    text = TextRef("show_info_player",
+      {
+        "p_name" : player.name,
+        "p_word" : player.word,
+        "p_prefix" : TextRef("your_team") if player.role in [Role.ALPHA, Role.BETA] else TextRef("your_role"),
+        "p_role" : TextRef(f"role_{player.role.value}"),
+        "p_current_score" : player.score
+      }
     )
   
-  buttons = [[InlineKeyboardButton(b("got_it"), callback_data="g:next")]]
+  buttons = [[Button(TextRef("got_it"), "g:next")]]
   await edit_message(session, text, buttons)
 
 async def render_end_inform_screen(session: Session, game: Game):
   ready = game.sessions_ready >= len(game.chat_ids)
-  extra_informs = "\n".join(
-    t("seen_info_times", p_name=p.name, p_saw_info=p.saw_info)
-    for p in session.players if p.saw_info > 1
-  )
+  extra_informs = [
+    line
+    for p in session.players
+    if p.saw_info > 1
+    for line in [
+      TextRef("seen_info_times", {
+        "p_name": p.name,
+        "p_saw_info": p.saw_info
+      }),
+      TextRef("text", {"text": "\n"})
+    ]
+  ]
 
   if ready:
     owner_session = get_session_of_owner(game=game)
-    extra_informs_owner = "\n".join(
-      t("seen_info_times", p_name=p.name, p_saw_info=p.saw_info)
-      for p in owner_session.players if p.saw_info > 1
-    )
-    new_text = (extra_informs_owner + "\n\n" + t("all_ready")).strip()
-    buttons = [[InlineKeyboardButton(b("start_questioning"), callback_data="g:start_question")]]
+    extra_informs_owner = [
+      line
+      for p in session.players
+      if p.saw_info > 1
+      for line in [
+        TextRef("seen_info_times", {
+          "p_name": p.name,
+          "p_saw_info": p.saw_info
+        }),
+        TextRef("text", {"text": "\n"})
+      ]
+    ]
+    new_text = extra_informs_owner + [TextRef("text", {"text" : "\n\n"}), TextRef("all_ready")]
+    buttons = [[Button(TextRef("start_questioning"), "g:start_question")]]
     owner_session.waited = True
     await edit_message(owner_session, new_text, buttons)
 
     if session.user_id != owner_session.user_id:
-      await edit_message(session, t("all_ready"))
+      await edit_message(session, TextRef("all_ready"))
   else:
-    waiting_text = t("waiting_others_finish")
-    text = (t("all_informed") + "\n\n" + extra_informs).strip()
+    waiting_text = TextRef("waiting_others_finish")
+    text = (TextRef("all_informed") + "\n\n" + extra_informs).strip()
     text += ("\n\n" + waiting_text)
     await edit_message(session, text.strip())
 
 async def render_hide_info_screen(session: Session):
   player = session.players[session.turn_index]
   buttons = [
-    [InlineKeyboardButton(b("thats_me"), callback_data="g:show")]
+    [Button(TextRef("thats_me"), "g:show")]
   ]
 
   if session.turn_index > 0:
-    buttons.append([InlineKeyboardButton(b("back"), callback_data="g:back")])
+    buttons.append([Button(TextRef("back"), "g:back")])
 
   if player.saw_info > 0:
-    buttons.append([InlineKeyboardButton(b("skip"), callback_data="g:next")])
+    buttons.append([Button(TextRef("skip"), "g:next")])
 
-  text = t("give_phone_to", p_name=player.name)
+  text = TextRef("give_phone_to", {"p_name" : player.name})
   await edit_message(session, text, buttons)
 
 # --- dispatch ---

@@ -1,86 +1,104 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from flows.choose_player import render_players_screen
 from flows.utils import *
 from flows.states import GameState
 from flows.substates import InterruptSubstate, SetupSubstate
 from handlers.utils import *
-from texts import t, b, set_lang
 from adapters.telegram.messaging import *
 from services.game_services import remove_players
+from texts.refs import TextRef, Button
 
 logger = logging.getLogger(__name__)
 
 
 async def start_bot(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
-  set_lang(user.lang)
   logger.info(f"User {user.id} ({user.username}) started bot")
 
   if context.args:
     await join_game(update, context)
     return
 
-  keyboard = [
-    [InlineKeyboardButton(b("start_game"), callback_data='s:setup_game')],
-    [InlineKeyboardButton(b("view_game_rules"), callback_data='help')],
+  buttons = [
+    [Button(TextRef("start_game"), 's:setup_game')],
+    [Button(TextRef("view_game_rules"), 'help')],
   ]
 
-  await context.bot.send_message(
-    chat_id=update.message.chat_id,
-    text=t("welcome"),
-    reply_markup=InlineKeyboardMarkup(keyboard)
+  await send_info_message(
+    bot = context.bot,
+    chat_id = update.message.chat_id,
+    text = TextRef("welcome"),
+    buttons = buttons,
+    lang = user.lang
   )
 
 
 async def start_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
-  set_lang(user.lang)
 
-  keyboard = [
-    [InlineKeyboardButton(b("start_it"), callback_data='s:setup_game')],
-    [InlineKeyboardButton(b("dont_start"), callback_data='del_message')],
+  buttons = [
+    [Button(TextRef("start_it"), 's:setup_game')],
+    [Button(TextRef("dont_start"), 'del_message')],
   ]
 
-  await context.bot.send_message(
-    chat_id=update.message.chat_id,
-    text=t("starting_new_game_warning"),
-    reply_markup=InlineKeyboardMarkup(keyboard)
+  await send_info_message(
+    bot = context.bot,
+    chat_id = update.message.chat_id,
+    text = TextRef("starting_new_game_warning"),
+    buttons = buttons,
+    lang = user.lang
   )
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  pass  # will be huge later...
+  pass
 
 
 async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, current_game = await get_user_game(update)
-  set_lang(user.lang)
   args = context.args
 
   if not args:
-    text = t("join_usage")
+    text = [TextRef("join_usage")]
     if current_game:
-      text = t("already_in_game_join_warning") + text
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+      text = [TextRef("already_in_game_join_warning")] + text
+    await send_info_message(
+      bot = context.bot,
+      chat_id = update.effective_chat.id,
+      text = text,
+      lang = user.lang
+    )
     return
 
   code = args[0]
   game = get_game_by_id(code)
   if not game:
     logger.warning(f"User {user.id} tried to join nonexistent game {code}")
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("game_not_found", code=code))
+    await send_info_message(
+      bot = context.bot,
+      chat_id = update.effective_chat.id,
+      text = TextRef("game_not_found", {"code":code}),
+      lang = user.lang
+    )
     return
 
   if current_game == game:
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("already_in_this_game"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id = update.effective_chat.id,
+      text = TextRef("already_in_this_game"),
+      lang = user.lang
+    )
     return
 
   if game.state != GameState.SETUP:
-    await context.bot.send_message(
-      chat_id=update.effective_chat.id,
-      text=t("game_already_started")
+    await send_info_message(
+      bot = context.bot,
+      chat_id = update.effective_chat.id,
+      text = TextRef("game_already_started"),
+      lang = user.lang
     )
     return
 
@@ -89,7 +107,12 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await terminate_game(current_game)
 
   slots = empty_slots(game)
-  msg = await context.bot.send_message(chat_id=update.effective_chat.id, text=t("input_names", slots=slots))
+  msg = await send_info_message(
+    bot = context.bot,
+    chat_id = update.effective_chat.id,
+    text = TextRef("input_names", {"slots" : slots}),
+    lang = user.lang
+  )
 
   add_user_to_game(user, game)
   session = await set_session(
@@ -106,22 +129,26 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   slots = empty_slots(game)
   await broadcast_message(
-    game=game, mode="edit",
-    text=t("input_names", slots=slots),
-    exclude_chat_ids=[session.chat_id],
-    only_with_substate=SetupSubstate.INPUT_NAMES,
+    game = game, mode="edit",
+    text = TextRef("input_names", {"slots" : slots}),
+    exclude_chat_ids = [session.chat_id],
+    only_with_substate = SetupSubstate.INPUT_NAMES,
   )
 
 
 async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
-  set_lang(user.lang)
 
   if not await check_game(update, context, game):
     return
 
   if game.state == GameState.SETUP:
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("game_not_started_yet"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("game_not_started_yet"),
+      lang = user.lang
+    )
     return
 
   if not await check_ownership(update, context, user, game):
@@ -129,24 +156,23 @@ async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   logger.info(f"Game {game.id} restarted by owner {user.id}")
   game.restart_game()
-  buttons = [[InlineKeyboardButton(b("start_game"), callback_data='g:start_round')]]
+  buttons = [[Button(TextRef("start_game"), 'g:start_round')]]
   session = get_session_of_chat(update.effective_chat.id)
 
   set_all_substates(game, SetupSubstate.FINISHED, set_waited = True)
-  await broadcast_message(game=game, mode="edit", text=t("restart_game_broadcast"), exclude_chat_ids=[session.chat_id])
-  await edit_message(session, t("restart_game_confirm"), buttons)
+  await broadcast_message(game=game, mode="edit", text=TextRef("restart_game_broadcast"), exclude_chat_ids=[session.chat_id])
+  await edit_message(session, TextRef("restart_game_confirm"), buttons)
 
 
 async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
-  set_lang(user.lang)
 
   if not await check_game(update, context, game):
     return
 
   session = get_session_of_chat(update.effective_chat.id)
   if session:
-    await send_message(session, text=session.text, buttons=session.build_buttons(), parse_mode=session.parse_mode)
+    await send_message(session, text = session.text, buttons = session.raw_markup, parse_mode=session.parse_mode)
 
 
 async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -160,7 +186,6 @@ async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
-  set_lang(user.lang)
 
   if not await check_game(update, context, game):
     return
@@ -169,18 +194,22 @@ async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   logger.info(f"Game {game.id} ended by owner {user.id}")
-  await broadcast_message(game=game, mode="edit", text=t("game_ended_by_owner"))
+  await broadcast_message(game=game, mode="edit", text=TextRef("game_ended_by_owner"))
   await terminate_game(game)
 
 
 async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
   session: Session = await get_session_of_user(user_id = user.id, username = user.username)
-  set_lang(user.lang)
 
   if not await check_game(update, context, game): return
   if not session:
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("not_in_a_game"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("not_in_a_game"),
+      lang = user.lang
+    )
     return
 
   if session.chat_id not in game.chat_ids: return
@@ -194,18 +223,27 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
-  set_lang(user.lang)
 
   if not await check_game(update, context, game): return
   if not await check_ownership(update, context, user, game): return
 
   if len(game.chat_ids) < 2:
-    await context.bot.send_message(chat_id = update.effective_chat.id, text = t("kick_inavailable"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("kick_inavailable"),
+      lang = user.lang
+    )
     return
   
   session: Session = await get_session_of_user(user_id = user.id, username = user.username)
   if not session or session.chat_id not in game.chat_ids:
-    await update.effective_chat.send_message(text=t("not_in_a_game"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("not_in_a_game"),
+      lang = user.lang
+    )
     return
 
   session.interrupt_substate = InterruptSubstate.REMOVE_PLAYER
@@ -215,21 +253,27 @@ async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
-  set_lang(user.lang)
 
   if game:
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("cant_edit_in_game"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("cant_edit_in_game"),
+      lang = user.lang
+    )
     return
 
-  new_message = await context.bot.send_message(
-    chat_id=update.effective_chat.id,
-    text=t("choose_edit"),
-    reply_markup=InlineKeyboardMarkup([
-      [InlineKeyboardButton(b("categories"), callback_data="e:categories")],
-      [InlineKeyboardButton(b("modes"), callback_data="e:modes")],
-      [InlineKeyboardButton(b("language"), callback_data="e:language")],
-      [InlineKeyboardButton(b("done"), callback_data="e:done")],
-    ])
+  new_message = await send_info_message(
+    bot = context.bot,
+    chat_id = update.effective_chat.id,
+    text = TextRef("choose_edit"),
+    buttons = [
+      [Button(TextRef("categories"), "e:categories")],
+      [Button(TextRef("modes"), "e:modes")],
+      [Button(TextRef("language"), "e:language")],
+      [Button(TextRef("done"), "e:done")],
+    ],
+    lang = user.lang,
   )
 
   await set_session(
@@ -244,11 +288,15 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user, game = await get_user_game(update)
-  set_lang(user.lang)
   args = context.args
 
   if not args:
-    await update.message.reply_text(t("broadcast_usage"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("broadcast_usage"),
+      lang = user.lang
+    )
     return
 
   if not await check_game(update, context, game):
@@ -268,24 +316,46 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
       continue
     formatted = f"{sender_session.players[0].name}: {message_text}"
     try:
-      await context.bot.send_message(chat_id=session.chat_id, text=formatted)
+      await send_info_message(
+        context.bot,
+        session.chat_id,
+        TextRef("text", {"text": formatted}),
+        lang = user.lang
+      )
     except Exception as e:
       logger.error(f"Broadcast failed | game: {game.id} | target chat: {session.chat_id} | error: {e}")
 
 
 async def check_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game):
+  user , _ = await get_user_game(update)
   if not game:
     if update.callback_query:
-      await update.callback_query.answer(text=t("not_in_a_game"))
+      await update.callback_query.answer()
+      await send_info_message(
+      bot = context.bot,
+      chat_id = update.effective_chat.id,
+      text = TextRef("not_in_a_game"),
+      lang = user.lang
+    )
     else:
-      await context.bot.send_message(chat_id=update.effective_chat.id, text=t("no_running_game"))
+      await send_info_message(
+        bot = context.bot,
+        chat_id = update.effective_chat.id,
+        text = TextRef("no_running_game"),
+        lang = user.lang
+      )
     return False
   return True
 
 
 async def check_ownership(update: Update, context: ContextTypes.DEFAULT_TYPE, user: User, game: Game):
   if game.owner_id != user.id:
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=t("not_owner"))
+    await send_info_message(
+      bot = context.bot,
+      chat_id=update.effective_chat.id,
+      text = TextRef("not_owner"),
+      lang = user.lang
+    )
     return False
   return True
 

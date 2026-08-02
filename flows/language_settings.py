@@ -1,9 +1,10 @@
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from data.users import get_user_by_id
 from models.session import Session
-from texts import t, b, set_lang, supported_langs
+from texts import supported_langs
 from flows.substates import LanguageSettingsSubstate
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 
 async def handle_language_settings(update: Update, session: Session):
@@ -14,11 +15,11 @@ async def handle_language_settings(update: Update, session: Session):
   async def render_language_settings_screen():
     buttons = []
     for lang in supported_langs:
-      mark = " ✅" if user.lang == lang else ""
-      button = InlineKeyboardButton(text = b(f"language_{lang}") + mark, callback_data = f"e:language:{lang}")
+      chosen = "_chosen" if user.lang == lang else ""
+      button = Button(TextRef(f"language_{lang}{chosen}"), f"e:language:{lang}")
       buttons.append([button])
-    buttons.append([InlineKeyboardButton(b("done"), callback_data="e:done")])
-    await edit_message(session = session, text = t("language_main") , buttons = buttons)
+    buttons.append([Button(TextRef("done"), "e:done")])
+    await edit_message(session = session, text = TextRef("language_main"), buttons = buttons)
 
   if session.game_substate is None or data.startswith("e:language"):
     session.game_substate = LanguageSettingsSubstate.MAIN
@@ -28,7 +29,6 @@ async def handle_language_settings(update: Update, session: Session):
       lang = data.split(":")[-1]
       if lang in supported_langs:
         user.lang = lang
-        set_lang(lang)
 
     elif data == "e:done":
       session.game_substate = None

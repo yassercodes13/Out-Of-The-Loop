@@ -183,6 +183,29 @@ GENERAL_TEXTS = {
   "kick_inavailable" : {
     "en" : "'Kick' is only available in multiple-phone mode.",
     "ar" : "الامر 'kick' يمكن استعماله فقط في حال وجود عدة اجهزة"
-  } 
+  },
+
+  # --- language settings ---
+
+  "language" : {
+    "en": "Language", 
+    "ar": "اللغة"
+  },
+
+  "language_en" : {
+    "en": "English",
+    "ar": "الإنجليزية"
+  },
+
+  "language_ar" : {
+    "en": "Arabic",
+    "ar": "العربية"
+  },
+
+  # --- custom text ---
+  "text" : {
+    "en": "{text}", 
+    "ar": "{text}"
+  }  # used for dynamic text in buttons, e.g., player names, category titles, etc.
   
 }

@@ -15,11 +15,6 @@ GUESS_TEAMS_TEXTS = {
     "ar": "حدد الفرق:\n\n"
   },
 
-  "player_team_toggle": {
-    "en": "{p_name} → {team} ?",
-    "ar": "{p_name} → {team} ?"
-  },
-
   "guess_result": {
     "en": "Detective got {result_text}\nAlpha team: {alphas}\nBeta team: {betas}\n",
     "ar": "حصل المحقق على {result_text}\nفريق ألفا: {alphas}\nفريق بيتا: {betas}\n"

@@ -1,5 +1,5 @@
 import logging
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from telegram.ext import ContextTypes
 from flows.mode_settings import handle_mode_settings
 from models.game import Game
@@ -21,10 +21,10 @@ from flows.guess_outsider import handle_guess_outsider
 from flows.paused import handle_paused
 from flows.choose_player import handle_choose_player
 from handlers.utils import get_user_game
-from texts import set_lang, t, b
-from adapters.telegram.messaging import delete_popup, edit_message
+from adapters.telegram.messaging import delete_popup, edit_message, send_info_message
 from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
 from data.runtime_manager import *
+from texts.refs import TextRef, Button
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,6 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   query = update.callback_query
   data = query.data if query else None
   user, _ = await get_user_game(update)
-  set_lang(user.lang)
 
   logger.info(f"User {user.id} | game: {game.id if game else None} | state: {game.state if game else None} | data: {data}")
 
@@ -45,19 +44,31 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   # --- interruptions ---
   if session and session.interrupt_substate == InterruptSubstate.REMOVE_PLAYER:
     if query.message.message_id not in popups:
-      await query.answer("This action is no longer valid.", show_alert = False)
+      await send_info_message(
+        bot = context.bot,
+        chat_id = update.effective_chat.id,
+        text = TextRef("not_active"),
+        lang = user.lang
+      )
       return
     state_changed = await handle_choose_player(update, game, session)
 
   elif session and session.interrupt_substate is None and data and data.startswith("i:"):
     if query.message.message_id not in popups:
-      await query.answer("This action is no longer valid.", show_alert = False)
+      await send_info_message(
+        bot = context.bot,
+        chat_id = update.effective_chat.id,
+        text = TextRef("not_active"),
+        lang = user.lang
+      )
       return
 
     if session and data == "i:session_alive":
       await delete_popup(session)
     if game and data == "i:game_running":
       await delete_popup(game)
+    if session and data == "i:ok":
+      await delete_popup(session)
   
   # --- init a game ---
   elif data == "s:setup_game":
@@ -125,18 +136,18 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
 
     if data == "e:done":
       buttons = [
-        [InlineKeyboardButton(b("categories"), callback_data="e:categories")],
-        [InlineKeyboardButton(b("modes"),      callback_data="e:modes")],
-        [InlineKeyboardButton(b("language"),   callback_data="e:language")],
-        [InlineKeyboardButton(b("done"),       callback_data="e:done")],
+        [Button(TextRef("categories"), "e:categories")],
+        [Button(TextRef("modes"), "e:modes")],
+        [Button(TextRef("language"), "e:language")],
+        [Button(TextRef("done"), "e:done")],
       ]
 
       if session.game_substate is None:
-        await edit_message(session, text=t("settings_saved"))
+        await edit_message(session, text=TextRef("settings_saved"))
         await terminate_session(session=session)
       else:
         await update_user(user)
-        await edit_message(session, text=t("choose_edit"), buttons=buttons)
+        await edit_message(session, text=TextRef("choose_edit"), buttons=buttons)
         session.game_substate = None
 
     elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":

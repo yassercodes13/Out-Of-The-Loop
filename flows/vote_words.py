@@ -1,42 +1,40 @@
 from flows.utils import *
 from flows.states import GameState
 from flows.substates import VoteWordsSubstate
-from telegram import InlineKeyboardButton, Update
+from telegram import Update
 from data.runtime_manager import get_session_of_owner
 from models.player import Player
-from texts import t, b
 from adapters.telegram.messaging import *
+from texts.refs import TextRef, Button
 
 
 # --- screen renderers ---
 
 async def render_vote_words_start_screen(game: Game):
   await broadcast_message(
-    game=game, mode="edit",
-    text=t("vote_words_intro"),
-    buttons=[[InlineKeyboardButton(b("start_voting"), callback_data="g:start_voting")]]
+    game = game, mode = "edit",
+    text = TextRef("vote_words_intro"),
+    buttons=[[Button(TextRef("start_voting"), "g:start_voting")]]
   )
 
 
 async def render_voting_screen(session: Session, voter: Player, other_team: str, choices: list, prefix: str):
-  text = t("vote_prompt", voter_name = voter.name, other_team=other_team)
+  text = TextRef("vote_prompt", {"voter_name" : voter.name, "other_team" : other_team})
   buttons = [
-    [InlineKeyboardButton(choice, callback_data = f"g:{prefix}_choice:{i}")]
+    [Button(TextRef("text", {"text" : choice}), f"g:{prefix}_choice:{i}")]
     for i, choice in enumerate(choices)
   ]
   await edit_message(session, text, buttons)
 
 
 async def render_waiting_result_screen(session: Session):
-  await edit_message(session, t("waiting_voting"))
+  await edit_message(session, TextRef("waiting_voting"))
 
 
 async def render_vote_result_screen(game: Game):
   result = game.check_team_guess()
-  result_message = "".join([t(string, **kwargs) for string, kwargs in result])
-
-  text = t("see_results_prompt", result_message = result_message)
-  buttons = [[InlineKeyboardButton(b("see_results"), callback_data="g:round_results")]]
+  text = TextRef("see_results_prompt", {"result_message" : result})
+  buttons = [[Button(TextRef("see_results"), "g:round_results")]]
 
   owner_session = get_session_of_owner(game=game)
   owner_session.waited = True
@@ -79,11 +77,11 @@ async def handle_vote_words(update: Update, game: Game, session: Session):
 
       if voter in game.alphas:
         choices = game.alpha_choices
-        other_team = t("beta")
+        other_team = TextRef("beta")
         prefix = "a"
       elif voter in game.betas:
         choices = game.beta_choices
-        other_team = t("alpha")
+        other_team = TextRef("alpha")
         prefix = "b"
       else:
         return False  # Should never happen
