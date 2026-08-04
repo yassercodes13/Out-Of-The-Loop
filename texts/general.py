@@ -41,12 +41,12 @@ GENERAL_TEXTS = {
   "already_in_game_join_warning": {
     "en": (
       "⚠️ You are already in a game.\n"
-      "Joining another will end your current one.\n"
+      "Joining another will kick you out of the current one.\n"
       "To see your game try /game\n\n"
     ),
     "ar": (
       "⚠️ أنت بالفعل في لعبة.\n"
-      "الانضمام إلى أخرى سيُنهي لعبتك الحالية.\n"
+      "الانضمام إلى أخرى سيُخرجك من لعبتك الحالية.\n"
       "لرؤية لعبتك جرّب /game\n\n"
     )
   },
@@ -175,6 +175,11 @@ GENERAL_TEXTS = {
     "ar": "غادر {players_names}، اللعبة انتهت.",
   },
 
+  "a_player_left_game_terminated": {
+    "en": "a player left, game is terminated",
+    "ar": "غادر لاعب. اللعبة انتهت.",
+  },
+    
   "choose_the_player" : {
     "en" : "Choose the player",
     "ar" : "اختر اللاعب"

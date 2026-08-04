@@ -1,4 +1,4 @@
-from data.runtime_manager import get_session_of_owner
+from data.links import get_session_of_owner
 from models.game import Game
 from models.role import Role
 from models.session import Session
@@ -47,7 +47,7 @@ async def render_show_info_screen(session: Session):
   await edit_message(session, text, buttons)
 
 async def render_end_inform_screen(session: Session, game: Game):
-  ready = game.sessions_ready >= len(game.chat_ids)
+  ready = game.sessions_ready >= len(game.session_ids)
   extra_informs = [
     line
     for p in session.players
@@ -65,7 +65,7 @@ async def render_end_inform_screen(session: Session, game: Game):
     owner_session = get_session_of_owner(game=game)
     extra_informs_owner = [
       line
-      for p in session.players
+      for p in owner_session.players
       if p.saw_info > 1
       for line in [
         TextRef("seen_info_times", {
@@ -84,9 +84,9 @@ async def render_end_inform_screen(session: Session, game: Game):
       await edit_message(session, TextRef("all_ready"))
   else:
     waiting_text = TextRef("waiting_others_finish")
-    text = (TextRef("all_informed") + "\n\n" + extra_informs).strip()
-    text += ("\n\n" + waiting_text)
-    await edit_message(session, text.strip())
+    text = [TextRef("all_informed"), TextRef("text", {"text":"\n\n"})] + extra_informs
+    text += [TextRef("text", {"text":"\n\n"}), waiting_text]
+    await edit_message(session, text)
 
 async def render_hide_info_screen(session: Session):
   player = session.players[session.turn_index]

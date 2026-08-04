@@ -1,5 +1,5 @@
 from data.default_categories import default_categories
-from data.modes import GameMode
+from models.modes import GameMode
 from models.category import Category
 
 class User:

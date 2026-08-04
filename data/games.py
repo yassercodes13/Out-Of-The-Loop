@@ -1,13 +1,10 @@
-#games.py
-import time
-import random
 import secrets
 from data.runtime import *
 from config import ID_ALPHABET, GAME_ID_LENGTH
   
-def make_game(owner_id: int, owner_chat_id: int):
-  game_id = generate_game_id(GAME_ID_LENGTH)
-  game = Game(game_id, owner_id, owner_chat_id)
+def make_game(owner_id: int, owner_session_id: int):
+  game_id = _generate_game_id(GAME_ID_LENGTH)
+  game = Game(game_id, owner_id, owner_session_id)
   add_game(game)
   return game
 
@@ -21,7 +18,7 @@ def get_game_by_id(game_id: str):
 def delete_game(game: Game):
   return active_games.pop(game.id, None)
 
-def generate_game_id(length = GAME_ID_LENGTH):
+def _generate_game_id(length = GAME_ID_LENGTH):
   while True:
     game_id = ''.join(secrets.choice(ID_ALPHABET) for _ in range(length))
     if game_id not in active_games:

@@ -2,7 +2,7 @@ from flows.utils import *
 from flows.states import GameState
 from flows.substates import VoteWordsSubstate
 from telegram import Update
-from data.runtime_manager import get_session_of_owner
+from data.links import get_session_of_owner
 from models.player import Player
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
@@ -38,7 +38,7 @@ async def render_vote_result_screen(game: Game):
 
   owner_session = get_session_of_owner(game=game)
   owner_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[owner_session.id])
   await edit_message(owner_session, text, buttons)
 
 
@@ -103,7 +103,7 @@ async def handle_vote_words(update: Update, game: Game, session: Session):
     game.sessions_ready += 1
     session.waited = False
 
-    if game.sessions_ready < len(game.chat_ids):
+    if game.sessions_ready < len(game.session_ids):
       await render_waiting_result_screen(session)
       return False
     else:

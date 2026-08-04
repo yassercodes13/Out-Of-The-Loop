@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class GameMode(Enum):
   CLASSIC = ("Classic", 3, 1, 0)
   DOUBLE_BLUFF = ("Double Bluff", 4, 2, 0)

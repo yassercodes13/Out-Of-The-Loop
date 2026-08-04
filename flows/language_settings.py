@@ -1,5 +1,5 @@
 from telegram import Update
-from data.users import get_user_by_id
+from data.users import get_user_by_id, update_user
 from models.session import Session
 from texts import supported_langs
 from flows.substates import LanguageSettingsSubstate

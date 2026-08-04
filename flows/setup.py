@@ -2,10 +2,11 @@ from flows.category_settings import make_category_buttons
 from flows.utils import *
 from flows.states import GameState
 from flows.substates import SetupSubstate
-from data.runtime_manager import *
+from data.links import get_user_by_id, get_session_by_id, get_session_of_owner
+from services.lifecycle_services import terminate_session
 from handlers.utils import *
 from data.default_categories import default_categories
-from data.modes import GameMode
+from models.modes import GameMode
 from config import MAX_ROUNDS, MIN_ROUNDS, PLAYER_COUNT_OPTIONS_PER_ROW, ROUND_ADJUST_STEPS, MAX_PLAYERS, MIN_PLAYERS
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
@@ -54,7 +55,7 @@ async def render_input_names_multiple_screen(session: Session, game: Game):
   user = await get_user_by_id(session.user_id)
   await send_join_message(
     bot = session.bot,
-    chat_id = session.chat_id,
+    chat_id = session.id,
     game_id = game.id,
     user = user
   )
@@ -188,23 +189,23 @@ async def handle_setup(update: Update, game: Game, session: Session):
           owner_session.waited = True
           await edit_message(owner_session, TextRef("all_joined"), buttons)
 
-          for cid in game.chat_ids:
-            session = get_session_of_chat(cid)
+          for sid in game.session_ids:
+            session = get_session_by_id(sid)
             if session.game_substate == SetupSubstate.INPUT_NAMES:
-              await terminate_session(session)
+              await terminate_session(session_id = sid)
 
         else:
           await broadcast_message(
             game=game, mode="edit",
             text=TextRef("waiting_for_players", {"game_id": game.id, "joined_players": len(game.players), "initial_players_count": game.initial_players_count}),
-            exclude_chat_ids=[session.chat_id],
+            exclude_session_ids=[session.id],
             only_with_substate=SetupSubstate.WAITING,
           )
           slots = empty_slots(game)
           await broadcast_message(
             game=game, mode="edit",
             text=TextRef("input_names", {"slots": slots}),
-            exclude_chat_ids=[session.chat_id],
+            exclude_session_ids=[session.id],
             only_with_substate=SetupSubstate.INPUT_NAMES,
           )
 
@@ -222,7 +223,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
   elif session.game_substate == SetupSubstate.WAITING:
     if query and data == "s:all_joined":
-      await broadcast_message(game=game, mode="edit", text=TextRef("waiting_for_game_creator"), exclude_chat_ids=[session.chat_id])
+      await broadcast_message(game=game, mode="edit", text=TextRef("waiting_for_game_creator"), exclude_session_ids=[session.id])
 
       game.num_rounds = len(game.players)
       await render_adjust_rounds_screen(session, game, initial=True)

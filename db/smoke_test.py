@@ -1,9 +1,8 @@
 import asyncio
-from data.modes import GameMode
+from models.modes import GameMode
 from data.default_categories import default_categories
 from db.engine import get_session
 from db.models import UserORM
-from db.models.category_orm import category_to_orm
 from db.models.user_orm import user_from_orm, user_to_orm
 from models.user import User
 from models.category import Category

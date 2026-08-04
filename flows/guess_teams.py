@@ -2,7 +2,7 @@ from flows.utils import *
 from flows.states import GameState
 from flows.substates import GuessTeamsSubstate
 from telegram import Update
-from data.runtime_manager import get_session_of_owner
+from data.links import get_session_of_owner
 from models.role import Role
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
@@ -13,7 +13,7 @@ async def render_detective_waiting_screen(game: Game, session: Session):
   await broadcast_message(
     game = game, mode = "edit",
     text = TextRef("detective_will_guess"),
-    exclude_chat_ids=[session.chat_id]
+    exclude_session_ids=[session.id]
   )
   buttons = [[Button(TextRef("start"), "g:start")]]
   await edit_message(session, TextRef("your_turn_to_guess", {"detective_name": game.detective.name}), buttons)
@@ -53,7 +53,7 @@ async def render_result_screen(game: Game):
 
   owner_session = get_session_of_owner(game=game)
   owner_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[owner_session.id])
   await edit_message(owner_session, text, buttons)
 
 
@@ -75,7 +75,7 @@ async def handle_guess_teams(update: Update, game: Game, session: Session):
     }
 
     session.game_substate = GuessTeamsSubstate.GUESSING
-    set_all_substates(game, GuessTeamsSubstate.WAITING, exclude_chat_ids = [session.chat_id])
+    set_all_substates(game, GuessTeamsSubstate.WAITING, exclude_session_ids = [session.id])
 
     await render_detective_waiting_screen(game, session)
     return False

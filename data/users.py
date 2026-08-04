@@ -1,4 +1,3 @@
-#users.py
 from data.runtime import *
 from db.repositories import user_repo
 
@@ -35,3 +34,9 @@ async def update_user(user: User):
   if user:
     user.game_id = game_id
     active_users[user.id] = user
+
+async def ensure_user(user_id, username, lang = 'en'):
+  user = await get_user_by_id(user_id)
+  if not user:
+    user = await make_user(id = user_id, username = username, lang = lang)
+  return user

@@ -1,6 +1,6 @@
 from sqlalchemy import BigInteger, String, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from data.modes import GameMode
+from models.modes import GameMode
 from db.base import Base
 from typing import TYPE_CHECKING
 from db.models.category_orm import category_from_orm, category_to_orm

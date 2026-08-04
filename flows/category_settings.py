@@ -3,7 +3,7 @@ from flows.utils import *
 from adapters.telegram.messaging import *
 from flows.states import GameState
 from flows.substates import CategorySettingsSubstate, SetupSubstate
-from data.runtime_manager import *
+from data.users import get_user_by_id, update_user
 from handlers.utils import *
 from data.default_categories import default_categories
 from models.category import Category
@@ -136,7 +136,7 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         await query.answer()
         await send_info_message(
           session.bot,
-          session.chat_id,
+          session.id,
           TextRef("invalid_category"),
           [[Button(TextRef("ok"), "i:ok")]],
           user.lang

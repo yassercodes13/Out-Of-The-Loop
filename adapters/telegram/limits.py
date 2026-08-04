@@ -1,6 +1,4 @@
 import logging
-
-from telegram import InlineKeyboardButton
 from config import TELEGRAM_MAX_TEXT_LENGTH, TELEGRAM_MAX_CALLBACK_DATA_BYTES, TELEGRAM_LENGTH_WARNING_THRESHOLD
 
 logger = logging.getLogger(__name__)

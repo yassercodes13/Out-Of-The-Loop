@@ -1,9 +1,9 @@
-from data.modes import GameMode
+from models.modes import GameMode
 from flows.states import GameState
 from flows.substates import QuestionSubstate
 from telegram import Update
 from flows.utils import *
-from data.runtime_manager import get_session_of_chat, get_session_of_owner
+from data.links import get_session_by_id, get_session_of_owner
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
 
@@ -34,7 +34,7 @@ async def render_ask_question_screen(asker_session: Session, game: Game):
   if game.turn_index > 0:
     buttons.append([Button(TextRef("back"), "g:back")])
 
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[asker_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[asker_session.id])
   await edit_message(asker_session, text, buttons)
 
 
@@ -81,7 +81,7 @@ async def handle_questioning(update: Update, game: Game, session: Session):
 
   # --- RENDER CURRENT STEP ---
 
-  asker_session = get_session_of_chat(game.pairs[game.turn_index][0].session_id)
+  asker_session = get_session_by_id(game.pairs[game.turn_index][0].session_id)
   asker_session.waited = True
   await render_ask_question_screen(asker_session, game)
   return False

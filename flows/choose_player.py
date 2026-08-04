@@ -2,10 +2,10 @@ from flows.substates import InterruptSubstate
 from telegram import Update
 from flows.utils import *
 from adapters.telegram.messaging import *
-from services.game_services import remove_players
 from models.player import Player
 from texts.refs import TextRef, Button
 from typing import TYPE_CHECKING
+from services.lifecycle_services import remove_players
 if TYPE_CHECKING:
   from models.game import Game
   from models.session import Session

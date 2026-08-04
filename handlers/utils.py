@@ -1,20 +1,13 @@
 from telegram import Update
 from data.runtime import *
-from data.runtime_manager import *
+from data.links import get_game_of_user, get_session_by_id, get_game_of_session
+from data.users import get_user_by_id
 from texts import supported_langs
 
-async def get_user_game(update: Update):
-  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang = get_user_lang(update))
-  game = await get_game_of_user(user=user)
-  return (user, game)
-
-
 def get_session_game(update: Update):
-  chat_id = update.effective_chat.id
-  session = get_session_of_chat(chat_id=chat_id)
-  game = get_game_of_session(chat_id=chat_id)
+  session = get_session_by_id(id = update.effective_chat.id)
+  game = get_game_of_session(session_id = update.effective_chat.id)
   return (session, game)
-
 
 def get_user_lang(update: Update):
   code = update.effective_user.language_code or 'en'  # language_code can be None on some Telegram accounts
@@ -22,10 +15,9 @@ def get_user_lang(update: Update):
   lang = lang if lang in supported_langs else 'en'
   return lang
 
-
 def is_active(update: Update):
   chat_id = update.effective_chat.id
-  active_session = get_session_of_chat(chat_id)
+  active_session = get_session_by_id(id = chat_id)
 
   if not active_session:
     return False
@@ -41,7 +33,3 @@ def is_active(update: Update):
     return False
 
   return active_session.message_id == message_id
-
-
-async def end_game(game: Game):
-  await terminate_game(game=game)

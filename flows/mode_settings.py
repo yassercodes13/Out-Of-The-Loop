@@ -1,10 +1,11 @@
 from telegram import Update
-from data.modes import GameMode
+from models.modes import GameMode
 from flows.states import GameState
 from flows.substates import ModeSettingsSubstate, SetupSubstate
 from models.game import Game
 from models.session import Session
 from flows.utils import *
+from data.users import update_user
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
 

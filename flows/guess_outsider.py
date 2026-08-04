@@ -4,7 +4,7 @@ from flows.states import GameState
 from flows.substates import GuessOutsiderSubstate
 from telegram import Update
 from flows.utils import *
-from data.runtime_manager import get_session_of_owner
+from data.links import get_session_of_owner
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
 
@@ -25,7 +25,7 @@ async def render_result_screen(game: Game, is_correct: bool):
   
   owner_session = get_session_of_owner(game = game)
   owner_session.waited = True
-  await broadcast_message(game = game, mode="edit", text = text, exclude_chat_ids = [owner_session.chat_id])
+  await broadcast_message(game = game, mode="edit", text = text, exclude_session_ids = [owner_session.id])
   await edit_message(owner_session, text, buttons)
 
 # --- dispatch ---

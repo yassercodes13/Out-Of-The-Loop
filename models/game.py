@@ -1,21 +1,21 @@
 import random
 from telegram.ext import ContextTypes
 from config import POINTS_SMALL, POINTS_STANDARD, POINTS_LARGE, NUM_WORD_CHOICES, ARROWS, TIME_BEFORE_GAME_CHECK
-from data.modes import GameMode
+from models.modes import GameMode
 from flows.states import GameState
 from models.player import Player
 from data.default_categories import *
 from models.role import Role
-from texts.refs import TextRef, Button
+from texts.refs import TextRef
 
 class Game:
 
-  def __init__(self, game_id, owner_id, owner_chat_id):
+  def __init__(self, game_id, owner_id, owner_session_id):
     self.id        = game_id
     self.owner_id  = owner_id
-    self.owner_chat_id = owner_chat_id
+    self.owner_session_id = owner_session_id
     self.user_ids  = [owner_id]
-    self.chat_ids: list[int] = [owner_chat_id]
+    self.session_ids: list[int] = [owner_session_id]
 
     # Game
     self.type = None
@@ -64,6 +64,13 @@ class Game:
     self.reminder = None
     self.popup_message_id: int = None
 
+
+  @property
+  def min_players(self):
+    if self.random_mode:
+      return max([m.min_players for m in self.random_mode_options], default = 3)
+    else:
+      return self.mode.min_players
 
   def start_round(self, reset_mode):
     self.reset_round()
@@ -480,6 +487,6 @@ class Game:
     if self.id:
       self.reminder = context.job_queue.run_once(
         callback = game_reminder_callback,
-        chat_id = self.owner_chat_id,
+        chat_id = self.owner_session_id,
         when = TIME_BEFORE_GAME_CHECK,
       )

@@ -1,11 +1,11 @@
 from models.game import Game
 from models.session import Session
-from data.modes import GameMode
+from models.modes import GameMode
 from flows.states import GameState
 from flows.substates import RevealSubstate
 from telegram import Update
 from flows.utils import *
-from data.runtime_manager import get_session_of_owner, get_session_of_chat
+from data.links import get_session_of_owner, get_session_by_id
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
 
@@ -17,10 +17,10 @@ async def render_single_outsider_screen(game: Game):
   buttons = [
     [Button(TextRef("guess_word"), "g:guess_word:0")]
   ]
-  outsider_session = get_session_of_chat(outsiders[0].session_id)
+  outsider_session = get_session_by_id(outsiders[0].session_id)
   outsider_session.waited = True
 
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[outsider_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[outsider_session.id])
   await edit_message(outsider_session, text, buttons)
 
 async def render_double_outsider_screen(game: Game):
@@ -36,9 +36,9 @@ async def render_double_outsider_screen(game: Game):
     [Button(TextRef("guess_outsider"), "g:guess_outsider")]
   ]
 
-  outsider_session = get_session_of_chat(outsiders[0].session_id)
+  outsider_session = get_session_by_id(outsiders[0].session_id)
   outsider_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=reveal_text, exclude_chat_ids=[outsider_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=reveal_text, exclude_session_ids=[outsider_session.id])
   await edit_message(outsider_session, choices_text, buttons)
 
 async def render_detective_reveal_screen(game: Game):
@@ -47,9 +47,9 @@ async def render_detective_reveal_screen(game: Game):
     [Button(TextRef("guess_team_members"), "g:guess_teams")]
   ]
 
-  detective_session = get_session_of_chat(game.detective.session_id)
+  detective_session = get_session_by_id(game.detective.session_id)
   detective_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[detective_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[detective_session.id])
   await edit_message(detective_session, text, buttons)
 
 async def render_teams_reveal_screen(game: Game):
@@ -62,7 +62,7 @@ async def render_teams_reveal_screen(game: Game):
 
   owner_session = get_session_of_owner(game = game)
   owner_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[owner_session.id])
   await edit_message(owner_session, text, buttons)
 
 

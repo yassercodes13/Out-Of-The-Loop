@@ -1,4 +1,4 @@
-from data.modes import GameMode
+from models.modes import GameMode
 from flows.states import GameState
 from flows.substates import VoteSubstate
 from telegram import Update
@@ -11,10 +11,10 @@ from texts.refs import TextRef, Button
 
 async def render_start_vote_broadcast(session: Session, game: Game):
   buttons = [[Button(TextRef("start_voting"), "g:revote")]]
-  await broadcast_message(game=game, mode="edit", text=session.text, buttons=buttons, exclude_chat_ids=[session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=session.text, buttons=buttons, exclude_session_ids=[session.id])
 
 async def render_end_vote_screen(session: Session, game: Game, ready: bool):
-  text = TextRef("done_voting")
+  text = [TextRef("done_voting")]
   waiting_text = TextRef("waiting_others_vote")
   
   button_txt = TextRef("reveal_outsider")
@@ -28,7 +28,7 @@ async def render_end_vote_screen(session: Session, game: Game, ready: bool):
   if session.user_id == game.owner_id and ready:
     await edit_message(session, text, buttons)
   else:
-    text += waiting_text
+    text.append(waiting_text)
     await edit_message(session, text)
 
     if ready:
@@ -94,7 +94,7 @@ async def handle_voting(update: Update, game: Game, session: Session):
       session.game_substate = VoteSubstate.END
       game.sessions_ready += 1
      
-      ready = True if game.sessions_ready >= len(game.chat_ids) else False
+      ready = True if game.sessions_ready >= len(game.session_ids) else False
       session.waited = False
       await render_end_vote_screen(session, game, ready)
       return False

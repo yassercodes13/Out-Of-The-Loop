@@ -3,16 +3,16 @@ from models.session import Session
 from flows.states import GameState
 from flows.substates import GuessWordSubstate
 from telegram import Update
-from flows.utils import *
-from data.runtime_manager import get_session_of_owner
-from adapters.telegram.messaging import *
+from flows.utils import set_all_substates
+from data.links import get_session_of_owner, get_session_by_id
+from adapters.telegram.messaging import broadcast_message, edit_message
 from texts.refs import TextRef, Button
 
 # --- screen renderers ---
 
 async def render_waiting_broadcast(session: Session, game: Game):
   text = TextRef("is_guessing", {"name": game.word_guesser.name})
-  await broadcast_message(game = game, mode = "edit", text = text, exclude_chat_ids = [session.chat_id])
+  await broadcast_message(game = game, mode = "edit", text = text, exclude_session_ids = [session.id])
 
 async def render_choose_word_screen(session: Session, game: Game):
   buttons = []
@@ -34,7 +34,7 @@ async def render_guess_result_screen(game: Game, word: str, result: bool):
   owner_session = get_session_of_owner(game=game)
   owner_session.waited = True
   
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[owner_session.id])
   await edit_message(owner_session, text, buttons)
 
 # --- dispatch ---
@@ -51,7 +51,7 @@ async def handle_guess_word(update: Update, game: Game, session: Session):
     out_idx = int(parts[2])
     game.word_guesser = game.outsiders[out_idx]
 
-    set_all_substates(game, GuessWordSubstate.WAITING, exclude_chat_ids=[session.chat_id])
+    set_all_substates(game, GuessWordSubstate.WAITING, exclude_session_ids=[session.id])
     
     await render_waiting_broadcast(session, game)
     await render_choose_word_screen(session, game)
@@ -62,7 +62,7 @@ async def handle_guess_word(update: Update, game: Game, session: Session):
     word_idx = int(query.data.split(":")[2])
     word = game.choices[word_idx]
     result = game.check_word(word)
-    get_session_of_chat(game.word_guesser.session_id).waited = False
+    get_session_by_id(game.word_guesser.session_id).waited = False
 
     await render_guess_result_screen(game, word, result)
     

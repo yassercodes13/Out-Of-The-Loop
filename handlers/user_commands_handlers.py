@@ -2,13 +2,18 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from flows.choose_player import render_players_screen
-from flows.utils import *
+from flows.utils import empty_slots, set_all_substates
+from models.user import User
+from models.game import Game
+from models.session import Session
 from flows.states import GameState
 from flows.substates import InterruptSubstate, SetupSubstate
-from handlers.utils import *
-from adapters.telegram.messaging import *
-from services.game_services import remove_players
+from handlers.utils import get_user_lang
+from adapters.telegram.messaging import broadcast_message, edit_message, send_message, send_info_message
 from texts.refs import TextRef, Button
+from data.links import link_user_and_game, get_game_by_id, get_session_of_user, get_game_of_user, get_session_by_id
+from services.lifecycle_services import set_session, terminate_game, remove_players
+from data.users import ensure_user
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +62,8 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, current_game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  current_game = await get_game_of_user(user.id)
   args = context.args
 
   if not args:
@@ -103,8 +109,8 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return
 
   if current_game:
-    logger.info(f"User {user.id} left game {current_game.id} to join game {game.id}")
-    await terminate_game(current_game)
+    session = await get_session_of_user(user.id)
+    await remove_players(game = current_game, player_ids = [p.id for p in session.players])
 
   slots = empty_slots(game)
   msg = await send_info_message(
@@ -114,9 +120,9 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = user.lang
   )
 
-  add_user_to_game(user, game)
+  link_user_and_game(user, game)
   session = await set_session(
-    chat_id = update.effective_chat.id,
+    id = update.effective_chat.id,
     message_id = msg.message_id,
     game_id = game.id,
     user_id = user.id,
@@ -131,15 +137,16 @@ async def join_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await broadcast_message(
     game = game, mode="edit",
     text = TextRef("input_names", {"slots" : slots}),
-    exclude_chat_ids = [session.chat_id],
+    exclude_session_ids = [session.id],
     only_with_substate = SetupSubstate.INPUT_NAMES,
   )
 
 
 async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
 
-  if not await check_game(update, context, game):
+  if not await check_game(update, context, game, user):
     return
 
   if game.state == GameState.SETUP:
@@ -157,20 +164,21 @@ async def restart_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
   logger.info(f"Game {game.id} restarted by owner {user.id}")
   game.restart_game()
   buttons = [[Button(TextRef("start_game"), 'g:start_round')]]
-  session = get_session_of_chat(update.effective_chat.id)
+  session = get_session_by_id(update.effective_chat.id)
 
   set_all_substates(game, SetupSubstate.FINISHED, set_waited = True)
-  await broadcast_message(game=game, mode="edit", text=TextRef("restart_game_broadcast"), exclude_chat_ids=[session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=TextRef("restart_game_broadcast"), exclude_session_ids=[session.id])
   await edit_message(session, TextRef("restart_game_confirm"), buttons)
 
 
 async def resend_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
 
-  if not await check_game(update, context, game):
+  if not await check_game(update, context, game, user):
     return
 
-  session = get_session_of_chat(update.effective_chat.id)
+  session = get_session_by_id(update.effective_chat.id)
   if session:
     await send_message(session, text = session.text, buttons = session.raw_markup, parse_mode=session.parse_mode)
 
@@ -185,9 +193,10 @@ async def del_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
 
-  if not await check_game(update, context, game):
+  if not await check_game(update, context, game, user):
     return
 
   if not await check_ownership(update, context, user, game):
@@ -199,10 +208,11 @@ async def end_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
-  session: Session = await get_session_of_user(user_id = user.id, username = user.username)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
+  session: Session = await get_session_of_user(user_id = user.id)
 
-  if not await check_game(update, context, game): return
+  if not await check_game(update, context, game, user): return
   if not session:
     await send_info_message(
       bot = context.bot,
@@ -212,7 +222,7 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return
 
-  if session.chat_id not in game.chat_ids: return
+  if session.id not in game.session_ids: return
 
   if len(session.players) == 1:
     await remove_players(game, [p.id for p in session.players])
@@ -222,12 +232,13 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
 
-  if not await check_game(update, context, game): return
+  if not await check_game(update, context, game, user): return
   if not await check_ownership(update, context, user, game): return
 
-  if len(game.chat_ids) < 2:
+  if len(game.session_ids) < 2:
     await send_info_message(
       bot = context.bot,
       chat_id=update.effective_chat.id,
@@ -236,8 +247,8 @@ async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return
   
-  session: Session = await get_session_of_user(user_id = user.id, username = user.username)
-  if not session or session.chat_id not in game.chat_ids:
+  session: Session = await get_session_of_user(user_id = user.id)
+  if not session or session.id not in game.session_ids:
     await send_info_message(
       bot = context.bot,
       chat_id=update.effective_chat.id,
@@ -252,7 +263,8 @@ async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
 
   if game:
     await send_info_message(
@@ -277,17 +289,18 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
   await set_session(
-    chat_id=update.effective_chat.id,
-    message_id=new_message.message_id,
-    game_id=None,
-    user_id=update.effective_user.id,
-    bot=context.bot,
-    job_queue=context.job_queue,
+    id = update.effective_chat.id,
+    game_id = None,
+    message_id = new_message.message_id,
+    user_id = update.effective_user.id,
+    bot = context.bot,
+    job_queue = context.job_queue,
   )
 
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user, game = await get_user_game(update)
+  user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))
+  game = await get_game_of_user(user.id)
   args = context.args
 
   if not args:
@@ -299,35 +312,34 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return
 
-  if not await check_game(update, context, game):
+  if not await check_game(update, context, game, user):
     return
 
   message_text = " ".join(args)
-  sender_session = await get_session_of_user(user.id, user.username)
+  sender_session = await get_session_of_user(user.id)
   
   game.set_reminder(context)
   if sender_session:
     sender_session.set_reminder(context = context)
   
 
-  for cid in game.chat_ids:
-    session = get_session_of_chat(cid)
+  for sid in game.session_ids:
+    session = get_session_by_id(sid)
     if session == sender_session:
       continue
     formatted = f"{sender_session.players[0].name}: {message_text}"
     try:
       await send_info_message(
         context.bot,
-        session.chat_id,
+        session.id,
         TextRef("text", {"text": formatted}),
         lang = user.lang
       )
     except Exception as e:
-      logger.error(f"Broadcast failed | game: {game.id} | target chat: {session.chat_id} | error: {e}")
+      logger.error(f"Broadcast failed | game: {game.id} | target chat: {session.id} | error: {e}")
 
 
-async def check_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game):
-  user , _ = await get_user_game(update)
+async def check_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game, user: User):
   if not game:
     if update.callback_query:
       await update.callback_query.answer()

@@ -1,11 +1,11 @@
 from config import SCORE_EDIT_STEPS
 from flows.utils import *
-from handlers.utils import end_game
 from flows.states import GameState
 from flows.substates import ResultsSubstate
 from telegram import Update
 from models.player import Player
 from adapters.telegram.messaging import *
+from services.lifecycle_services import terminate_game
 from texts.refs import TextRef, Button
 
 
@@ -67,7 +67,7 @@ async def render_round_results_screen(session: Session, game: Game, text: str, b
 
   if broadcast:
     guest_buttons = [[Button(TextRef("round_report"), "g:report")]]
-    await broadcast_message(game=game, mode="edit", text=text, buttons=guest_buttons, exclude_chat_ids=[session.chat_id])
+    await broadcast_message(game=game, mode="edit", text=text, buttons=guest_buttons, exclude_session_ids=[session.id])
 
 
 async def render_round_report_screen(session: Session, game: Game):
@@ -150,7 +150,7 @@ async def handle_results(update: Update, game: Game, session: Session):
 
   elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_it":
     text = render_final_result_text(game)
-    await end_game(game)
+    await terminate_game(game)
     await edit_message(session, text)
 
   elif session.game_substate == ResultsSubstate.FINAL_RESULTS and data == "g:end_results":

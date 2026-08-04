@@ -1,8 +1,9 @@
 from telegram import Update
 from telegram.ext import CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from adapters.telegram.messaging import send_info_message
-from handlers.utils import *
+from handlers.utils import get_session_game, get_user_lang, is_active
 from flows.router import route_game
+from data.users import ensure_user
 from texts.refs import TextRef
 
 
@@ -34,7 +35,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return
 
-  await route_game(update, context, game, session)
+  await route_game(update, context, game, session, user)
 
 
 async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -56,7 +57,7 @@ async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
     return
 
-  await route_game(update, context, game, session)
+  await route_game(update, context, game, session, user)
 
 
 callback_handler = CallbackQueryHandler(handle_callback, pattern=r"^(g:|s:|e:|i:)")

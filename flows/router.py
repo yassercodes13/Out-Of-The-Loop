@@ -1,8 +1,11 @@
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
+from data.games import get_game_by_id
+from data.sessions import get_session_by_id
 from flows.mode_settings import handle_mode_settings
 from models.game import Game
+from models.user import User
 from models.session import Session
 from flows.states import GameState
 from flows.substates import AnyCategorySettingsSubstate, InterruptSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
@@ -20,20 +23,25 @@ from flows.guess_teams import handle_guess_teams
 from flows.guess_outsider import handle_guess_outsider
 from flows.paused import handle_paused
 from flows.choose_player import handle_choose_player
-from handlers.utils import get_user_game
 from adapters.telegram.messaging import delete_popup, edit_message, send_info_message
-from data.runtime_manager import terminate_game, create_game, set_session, terminate_session
-from data.runtime_manager import *
+from services.lifecycle_services import create_game, remove_players, set_session, terminate_session
+from data.users import get_user_by_id, update_user
+from data.links import get_game_of_user
 from texts.refs import TextRef, Button
 
 logger = logging.getLogger(__name__)
 
 
-async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game = None, session: Session = None):
+async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: Game = None, session: Session = None, user: User = None):
   state_changed = False
   query = update.callback_query
   data = query.data if query else None
-  user, _ = await get_user_game(update)
+  if user is None:
+    user = await get_user_by_id(update.effective_user.id)
+    if user is None:
+      return
+  if game is None:
+    game = await get_game_of_user(user.id)
 
   logger.info(f"User {user.id} | game: {game.id if game else None} | state: {game.state if game else None} | data: {data}")
 
@@ -72,15 +80,16 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   
   # --- init a game ---
   elif data == "s:setup_game":
-    user, game = await get_user_game(update)
-    if game:
-      logger.info(f"Game {game.id} terminated to start new game for user {user.id}")
-      await terminate_game(game)
+    if user.game_id and session:
+      old_game = get_game_by_id(user.game_id)
+      if old_game:
+        await remove_players(game = old_game, player_ids = [p.id for p in session.players])
 
     chat_id    = update.effective_chat.id
     message_id = update.effective_message.message_id
-    game       = await create_game(user_id = user.id, username = user.username, owner_chat_id = chat_id)
-    session    = await set_session(chat_id=chat_id, message_id=message_id, game_id=game.id, user_id=user.id, bot = context.bot, job_queue = context.job_queue)
+
+    session    = await set_session(id = chat_id, message_id = message_id, user_id = user.id, bot = context.bot, job_queue = context.job_queue)
+    game       = await create_game(owner = user, owner_session = session, )
     session.waited = True
     game.set_reminder(context)
 
@@ -144,7 +153,7 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
 
       if session.game_substate is None:
         await edit_message(session, text=TextRef("settings_saved"))
-        await terminate_session(session=session)
+        await terminate_session(session_id = session.id)
       else:
         await update_user(user)
         await edit_message(session, text=TextRef("choose_edit"), buttons=buttons)
@@ -163,4 +172,4 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   if state_changed:
     if game:
       logger.info(f"Game {game.id} state changed to {game.state}")
-    await route_game(update, context, game, session)
+    await route_game(update, context, game, session, user)

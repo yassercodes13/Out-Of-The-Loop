@@ -1,7 +1,7 @@
 from models.game import Game
 from models.session import Session
 from telegram import Update
-from data.runtime_manager import terminate_game
+from services.lifecycle_services import terminate_game
 from adapters.telegram.messaging import *
 from texts.refs import TextRef, Button
 
@@ -11,7 +11,7 @@ async def render_paused_screen(game: Game, owner_session: Session):
   buttons = [[Button(TextRef("end_game"), "g:end_paused")]]
 
   owner_session.waited = True
-  await broadcast_message(game=game, mode="edit", text=text, exclude_chat_ids=[owner_session.chat_id])
+  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[owner_session.id])
   await edit_message(owner_session, text, buttons)
 
 
