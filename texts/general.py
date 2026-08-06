@@ -151,8 +151,8 @@ GENERAL_TEXTS = {
   },
 
   "game_paused_not_enough_players": {
-    "en": "Game is Paused.\nThere are no enough players to continue.",
-    "ar": "اللعبة متوقفة.\nلا يوجد عدد كافي من اللاعبين للاستكمال.",
+    "en": "Game is Paused.\nThere are no enough players to continue.\nCurrent players count: {current_players}",
+    "ar": "اللعبة متوقفة.\nلا يوجد عدد كافي من اللاعبين للاستكمال.\nعدد اللاعبين الحالي: {current_players}",
   },
 
   "mode_no_longer_valid": {

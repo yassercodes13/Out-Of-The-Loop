@@ -11,5 +11,9 @@ QUESTION_TEXTS = {
     "en": "{asker} ask {answerer}",
     # Arabic reads right to left, so the order of names is reversed (doens't change the fact that everyone gets asked once and answers once)
     "ar": "{answerer} اسأل {asker}", 
+  },
+  "waiting_for_owner_to_start_voting": {
+    "en": "Waiting for the owner to start voting...",
+    "ar": "في انتظار المشرف لبدء التصويت..."
   }
 }

@@ -1,92 +1,25 @@
 from db.repositories.category_repo import add_category, delete_category
-from flows.utils import *
-from adapters.telegram.messaging import *
+from adapters.telegram.messaging import edit_message, send_popup_message, send_info_message, send_message
 from flows.states import GameState
 from flows.substates import CategorySettingsSubstate, SetupSubstate
 from data.users import get_user_by_id, update_user
-from handlers.utils import *
+from telegram import Update
 from data.default_categories import default_categories
 from models.category import Category
+from models import Game, Session
 from texts.refs import TextRef, Button
 from config import CATEGORIES_PER_PAGE, MIN_LINES_FOR_CATEGORY, MIN_UNIQUE_WORDS
-
-
-# --- screen renderers ---
-
-async def render_category_settings_main_screen(session: Session, game: Game):
-  text = TextRef("what_to_do")
-  buttons = [
-    [Button(TextRef("change_random_categories"), "e:toggle")],
-    [Button(TextRef("create_category"), "e:create")],
-    [Button(TextRef("delete_category"), "e:delete")],
-    [Button(TextRef("view_category"), "e:view")],
-  ]
-  if game:
-    buttons.append([Button(TextRef("back_to_category_selection"), "s:choose_category")])
-  else:
-    buttons.append([Button(TextRef("done"), "e:done")])
-  await edit_message(session, text, buttons)
-
-
-async def render_delete_list_screen_paged(session: Session, user: User, categories: list, start_idx: int):
-  text = TextRef("select_category_to_delete")
-  buttons = make_category_buttons(start_idx, user, categories, callback_prefix="e:delete")
-  buttons.append([Button(TextRef("back_to_category_settings"), "e:categories")])
-  await edit_message(session, text, buttons)
-
-
-async def render_delete_confirm_screen(session: Session, category_title: str, idx: int):
-  text = TextRef("confirm_delete", {"category_title": category_title})
-  buttons = [
-    [Button(TextRef("yes_delete"), f"e:delete_confirm:{idx}")],
-    [Button(TextRef("no_keep"), "e:delete")]
-  ]
-  await edit_message(session, text, buttons)
-
-
-async def render_deleted_screen(session: Session, category_title: str):
-  text = TextRef("category_deleted", {"category_title": category_title})
-  buttons = [
-    [Button(TextRef("delete_another_category"), "e:delete")],
-    [Button(TextRef("back_to_category_settings"), "e:categories")],
-  ]
-  await edit_message(session, text, buttons)
-
-
-async def render_toggle_screen(session: Session, user: User, all_categories: list, start_idx: int = 0):
-  text = TextRef("toggle_random_categories")
-  buttons = make_category_buttons(start_idx, user, all_categories, show_marks=True, callback_prefix="e:toggle")
-  buttons.append([Button(TextRef("done"), "e:categories")])
-  await edit_message(session, text, buttons)
-
-
-async def render_view_list_screen(session: Session, user: User, all_categories: list, start_idx: int = 0):
-  text = TextRef("select_category_to_view")
-  buttons = make_category_buttons(start_idx, user, all_categories, callback_prefix="e:view")
-  buttons.append([Button(TextRef("back_to_category_settings"), "e:categories")])
-  await edit_message(session, text, buttons)
-
-
-async def render_view_category_screen(session: Session, category):
-  words = "\n".join(category.words)
-  text = TextRef("view_category_detail", {"title": category.title, "count": len(category.words), "words": words})
-  buttons = [[Button(TextRef("back_to_view_categories"), "e:view")]]
-  await edit_message(session, text, buttons)
-
-
-async def render_create_screen(session: Session):
-  text = TextRef("create_category_prompt")
-  buttons = [[Button(TextRef("back_to_category_settings"), "e:categories")]]
-  await edit_message(session, text, buttons)
-
-
-async def render_created_screen(session: Session, title: str, word_count: int, old_message):
-  text = TextRef("category_created", {"title": title, "word_count": word_count})
-  buttons = [[Button(TextRef("back_to_category_settings"), "e:categories")]]
-  await send_message(session, text, buttons, old_message=old_message, delete_old_message=True)
-
-
-# --- dispatch ---
+from views.category_settings import (
+  render_category_settings_main_screen,
+  render_delete_list_screen_paged,
+  render_delete_confirm_screen,
+  render_deleted_screen,
+  render_toggle_screen,
+  render_view_list_screen,
+  render_view_category_screen,
+  render_create_screen,
+  render_created_screen,
+)
 
 async def handle_category_settings(update: Update, game: Game, session: Session):
   query = update.callback_query
@@ -104,7 +37,9 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     return True
 
   if session.game_substate == CategorySettingsSubstate.MAIN and data == "e:categories":
-    await render_category_settings_main_screen(session, game)
+    show_back = (game is not None)
+    screen = render_category_settings_main_screen(show_back)
+    await edit_message(session, screen.textref, screen.buttons)
     await update_user(user)
     return False
 
@@ -124,14 +59,16 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         start_idx = int(data.split(':')[2])
         start_idx = max(0, min(start_idx, len(categories)-1))
 
-      await render_delete_list_screen_paged(session, user, categories, start_idx)
+      screen = render_delete_list_screen_paged(categories, start_idx)
+      await edit_message(session, screen.textref, screen.buttons)
       return False
 
     elif data.startswith("e:delete:"):
       idx = int(data.split(':')[2])
       if 0 <= idx < len(user.generated_categories):
         deleted_cat = user.generated_categories[idx]
-        await render_delete_confirm_screen(session, deleted_cat.title, idx)
+        screen = render_delete_confirm_screen(deleted_cat.title, idx)
+        await edit_message(session, screen.textref, screen.buttons)
       else:
         await query.answer()
         await send_info_message(
@@ -147,18 +84,17 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       idx = int(data.split(':')[2])
       if 0 <= idx < len(user.generated_categories):
         deleted_cat = user.generated_categories.pop(idx)
-        
         await delete_category(deleted_cat.id)
         if deleted_cat in user.random_categories:
           user.random_categories.remove(deleted_cat)
-        
         await update_user(user)
-        
+
         all_categories = user.generated_categories + default_categories
         if len(user.random_categories) < 2:
           user.random_categories = [cat for cat in all_categories]
-        
-        await render_deleted_screen(session, deleted_cat.title)
+
+        screen = render_deleted_screen(deleted_cat.title)
+        await edit_message(session, screen.textref, screen.buttons)
       else:
         await query.answer()
         await send_popup_message(session, TextRef("invalid_category"), [[Button(TextRef("ok"), "i:ok")]], session)
@@ -186,7 +122,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       start_idx = int(data.split(':')[2])
       start_idx = max(0, min(start_idx, len(all_categories)-1))
 
-    await render_toggle_screen(session, user, all_categories, start_idx)
+    screen = render_toggle_screen(user, all_categories, start_idx)
+    await edit_message(session, screen.textref, screen.buttons)
     return False
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.VIEW] and data and (data.startswith("e:view") or data.startswith("e:next_cats:")):
@@ -197,14 +134,16 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       if "next_cats" in data:
         start_idx = int(data.split(':')[2])
         start_idx = max(0, min(start_idx, len(all_categories)-1))
-      await render_view_list_screen(session, user, all_categories, start_idx)
+      screen = render_view_list_screen(all_categories, start_idx)
+      await edit_message(session, screen.textref, screen.buttons)
       return False
 
     elif data.startswith("e:view:"):
       category_idx = int(data.split(':')[2])
       if 0 <= category_idx < len(all_categories):
         category = all_categories[category_idx]
-        await render_view_category_screen(session, category)
+        screen = render_view_category_screen(category)
+        await edit_message(session, screen.textref, screen.buttons)
       else:
         await query.answer()
         await send_popup_message(session, TextRef("invalid_category"), [[Button(TextRef("ok"), "i:ok")]], session)
@@ -212,7 +151,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.CREATE] and data == "e:create":
     session.game_substate = CategorySettingsSubstate.CREATE
-    await render_create_screen(session)
+    screen = render_create_screen()
+    await edit_message(session, screen.textref, screen.buttons)
     return False
 
   elif session.game_substate == CategorySettingsSubstate.CREATE and update.message and update.message.reply_to_message:
@@ -235,36 +175,9 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     await add_category(new_category)
     await update_user(user)
 
+    screen = render_created_screen(title, len(words))
     old_message = update.message.reply_to_message if update.message else None
-    await render_created_screen(session, title, len(words), old_message)
+    await send_message(session, screen.textref, screen.buttons, old_message=old_message, delete_old_message=True)
     return False
 
   return False
-
-
-def make_category_buttons(start_idx: int, user: User, categories: list[Category], callback_prefix: str = "", show_random=False, show_marks=False):
-  if show_random:
-    buttons = [
-      [Button(TextRef("text", {"text":f"{cat.title} (R)" if cat in user.random_categories else cat.title}), f"{callback_prefix}:{i}")]
-      for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
-    ]
-  elif show_marks:
-    buttons = [
-      [Button(TextRef("text", {"text": cat.title + (" ✔" if cat in user.random_categories else " ✘")}), f"{callback_prefix}:{i}")]
-      for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
-    ]
-  else:
-    buttons = [
-      [Button(TextRef("text", {"text": cat.title}), f"{callback_prefix}:{i}")]
-      for i, cat in enumerate(categories) if start_idx <= i < CATEGORIES_PER_PAGE + start_idx
-    ]
-
-  nav_buttons = []
-  prefix = callback_prefix.split(':')[0] + ":"
-  if start_idx != 0:
-    nav_buttons.append(Button(TextRef("prev_page"), f"{prefix}next_cats:{start_idx - CATEGORIES_PER_PAGE}"))
-  if start_idx + CATEGORIES_PER_PAGE < len(categories):
-    nav_buttons.append(Button(TextRef("next_page"), f"{prefix}next_cats:{start_idx + CATEGORIES_PER_PAGE}"))
-  buttons.append(nav_buttons)
-
-  return buttons

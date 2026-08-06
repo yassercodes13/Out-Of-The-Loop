@@ -1,44 +1,11 @@
-from models.modes import GameMode
+from models import Game, Session
 from flows.states import GameState
 from flows.substates import QuestionSubstate
 from telegram import Update
-from flows.utils import *
+from flows.utils import set_all_substates
 from data.links import get_session_by_id, get_session_of_owner
-from adapters.telegram.messaging import *
-from texts.refs import TextRef, Button
-
-# --- screen renderers ---
-
-async def render_end_questions_screen(session: Session, game: Game):
-  if game.mode == GameMode.TEAMS:
-    text = TextRef("ready_vote_teams")
-  else:
-    text = TextRef("ready_vote_outsider")
-
-  buttons = [
-    [Button(TextRef("start_voting"), "g:start_vote")],
-    [Button(TextRef("extra_questions"), "g:extra_questions")],
-  ]
-
-  await edit_message(session, text, buttons)
-
-
-async def render_ask_question_screen(asker_session: Session, game: Game):
-  pair = game.pairs[game.turn_index]
-  text = TextRef("ask_question", {"asker" : pair[0].name, "answerer" : pair[1].name})
-
-  buttons = [
-    [Button(TextRef("next"), "g:next")],
-  ]
-
-  if game.turn_index > 0:
-    buttons.append([Button(TextRef("back"), "g:back")])
-
-  await broadcast_message(game=game, mode="edit", text=text, exclude_session_ids=[asker_session.id])
-  await edit_message(asker_session, text, buttons)
-
-
-# --- dispatch ---
+from adapters.telegram.messaging import edit_message, broadcast_message
+from views.question import render_end_questions_screen, render_ask_question_screen, render_waiting_for_owner_screen
 
 async def handle_questioning(update: Update, game: Game, session: Session):
   query = update.callback_query
@@ -76,12 +43,39 @@ async def handle_questioning(update: Update, game: Game, session: Session):
     owner_session = get_session_of_owner(game=game)
     set_all_substates(game, QuestionSubstate.END)
     owner_session.waited = True
-    await render_end_questions_screen(owner_session, game)
+
+    # Owner gets the end screen with voting options
+    screen_owner = render_end_questions_screen(game.mode)
+    await edit_message(owner_session, screen_owner.textref, screen_owner.buttons)
+
+    # Others get a waiting screen (no buttons)
+    screen_others = render_waiting_for_owner_screen()
+    await broadcast_message(
+      game=game,
+      mode="edit",
+      text=screen_others.textref,
+      exclude_session_ids=[owner_session.id]
+    )
     return False
 
-  # --- RENDER CURRENT STEP ---
+  # --- RENDER CURRENT STEP (if not end) ---
 
-  asker_session = get_session_by_id(game.pairs[game.turn_index][0].session_id)
+  pair = game.pairs[game.turn_index]
+  asker_session = get_session_by_id(pair[0].session_id)
   asker_session.waited = True
-  await render_ask_question_screen(asker_session, game)
+
+  show_back = (game.turn_index > 0)
+  screen = render_ask_question_screen(pair[0].name, pair[1].name, show_back)
+
+  # Broadcast to others (text only, no buttons)
+  await broadcast_message(
+    game=game,
+    mode="edit",
+    text=screen.textref,
+    exclude_session_ids=[asker_session.id]
+  )
+
+  # Edit the asker with full screen (text + buttons)
+  await edit_message(asker_session, screen.textref, screen.buttons)
+
   return False

@@ -1,11 +1,12 @@
 import logging
 from telegram import Update
-from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
-from flows.choose_player import render_players_screen
-from flows.utils import empty_slots, set_all_substates
 from models.user import User
 from models.game import Game
 from models.session import Session
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
+from views.choose_player import render_players_screen
+from views.settings import render_settings_menu_screen
+from flows.utils import empty_slots, set_all_substates
 from flows.states import GameState
 from flows.substates import InterruptSubstate, SetupSubstate
 from handlers.utils import get_user_lang
@@ -228,7 +229,8 @@ async def leave_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await remove_players(game, [p.id for p in session.players])
   else:
     session.interrupt_substate = InterruptSubstate.REMOVE_PLAYER
-    await render_players_screen(game, session, session.players, all_option=True)
+    screen = render_players_screen(session.players, all_option=True)
+    await edit_message(session, text = screen.textref, buttons = screen.buttons)
 
 
 async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -259,7 +261,8 @@ async def kick_player(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   session.interrupt_substate = InterruptSubstate.REMOVE_PLAYER
   players = [p for p in game.players if p not in session.players]
-  await render_players_screen(game, session, players)
+  screen = render_players_screen(players, all_option = False)
+  await edit_message(session, text = screen.textref, buttons = screen.buttons)
 
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,35 +271,30 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if game:
     await send_info_message(
-      bot = context.bot,
+      bot=context.bot,
       chat_id=update.effective_chat.id,
-      text = TextRef("cant_edit_in_game"),
-      lang = user.lang
+      text=TextRef("cant_edit_in_game"),
+      lang=user.lang
     )
     return
 
+  screen = render_settings_menu_screen()
   new_message = await send_info_message(
-    bot = context.bot,
-    chat_id = update.effective_chat.id,
-    text = TextRef("choose_edit"),
-    buttons = [
-      [Button(TextRef("categories"), "e:categories")],
-      [Button(TextRef("modes"), "e:modes")],
-      [Button(TextRef("language"), "e:language")],
-      [Button(TextRef("done"), "e:done")],
-    ],
-    lang = user.lang,
+    bot=context.bot,
+    chat_id=update.effective_chat.id,
+    text=screen.textref,
+    buttons=screen.buttons,
+    lang=user.lang,
   )
-
+  
   await set_session(
-    id = update.effective_chat.id,
-    game_id = None,
-    message_id = new_message.message_id,
-    user_id = update.effective_user.id,
-    bot = context.bot,
-    job_queue = context.job_queue,
+    id=update.effective_chat.id,
+    game_id=None,
+    message_id=new_message.message_id,
+    user_id=update.effective_user.id,
+    bot=context.bot,
+    job_queue=context.job_queue,
   )
-
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
   user = await ensure_user(user_id=update.effective_user.id, username=update.effective_user.username, lang=get_user_lang(update))

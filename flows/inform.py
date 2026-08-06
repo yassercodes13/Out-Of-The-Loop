@@ -1,122 +1,35 @@
 from data.links import get_session_of_owner
 from models.game import Game
-from models.role import Role
 from models.session import Session
 from flows.states import GameState
 from flows.substates import InformSubstate
 from telegram import Update
-from flows.utils import *
-from adapters.telegram.messaging import *
-from texts.refs import TextRef, Button
+from flows.utils import reset_turn_indices, set_all_substates
+from adapters.telegram.messaging import broadcast_message, edit_message
+from texts.refs import BroadcastScreens, TextRef
+from views.inform import (
+  render_round_info_screen,
+  render_show_info_screen,
+  render_hide_info_screen,
+  render_end_inform_screen,
+)
 
-# --- screen renderers ---
-
-async def render_round_info_screen(game: Game):
-  info = game.start_round(reset_mode = True)
-  text = TextRef("round_info", {"round_number": info["round_number"], "category": info["category"], "mode": info["mode"]})
-
-  buttons = [[Button(TextRef("got_it"), "g:start_informing")]]
-  await broadcast_message(game = game, mode = "edit", text = text, buttons = buttons)
-
-async def render_show_info_screen(session: Session):
-  player = session.players[session.turn_index]
-  
-  if player.role == Role.DETECTIVE:
-    text = TextRef("show_info_detective", 
-      {
-        "p_name": player.name,
-        "p_role": TextRef(f"role_{player.role.value}"),
-        "p_alpha_word": player.alpha_word,
-        "p_beta_word": player.beta_word,
-        "p_current_score": player.score
-      }
-    )
-  
-  else:
-    text = TextRef("show_info_player",
-      {
-        "p_name" : player.name,
-        "p_word" : player.word,
-        "p_prefix" : TextRef("your_team") if player.role in [Role.ALPHA, Role.BETA] else TextRef("your_role"),
-        "p_role" : TextRef(f"role_{player.role.value}"),
-        "p_current_score" : player.score
-      }
-    )
-  
-  buttons = [[Button(TextRef("got_it"), "g:next")]]
-  await edit_message(session, text, buttons)
-
-async def render_end_inform_screen(session: Session, game: Game):
-  ready = game.sessions_ready >= len(game.session_ids)
-  extra_informs = [
-    line
-    for p in session.players
-    if p.saw_info > 1
-    for line in [
-      TextRef("seen_info_times", {
-        "p_name": p.name,
-        "p_saw_info": p.saw_info
-      }),
-      TextRef("text", {"text": "\n"})
-    ]
-  ]
-
-  if ready:
-    owner_session = get_session_of_owner(game=game)
-    extra_informs_owner = [
-      line
-      for p in owner_session.players
-      if p.saw_info > 1
-      for line in [
-        TextRef("seen_info_times", {
-          "p_name": p.name,
-          "p_saw_info": p.saw_info
-        }),
-        TextRef("text", {"text": "\n"})
-      ]
-    ]
-    new_text = extra_informs_owner + [TextRef("text", {"text" : "\n\n"}), TextRef("all_ready")]
-    buttons = [[Button(TextRef("start_questioning"), "g:start_question")]]
-    owner_session.waited = True
-    await edit_message(owner_session, new_text, buttons)
-
-    if session.user_id != owner_session.user_id:
-      await edit_message(session, TextRef("all_ready"))
-  else:
-    waiting_text = TextRef("waiting_others_finish")
-    text = [TextRef("all_informed"), TextRef("text", {"text":"\n\n"})] + extra_informs
-    text += [TextRef("text", {"text":"\n\n"}), waiting_text]
-    await edit_message(session, text)
-
-async def render_hide_info_screen(session: Session):
-  player = session.players[session.turn_index]
-  buttons = [
-    [Button(TextRef("thats_me"), "g:show")]
-  ]
-
-  if session.turn_index > 0:
-    buttons.append([Button(TextRef("back"), "g:back")])
-
-  if player.saw_info > 0:
-    buttons.append([Button(TextRef("skip"), "g:next")])
-
-  text = TextRef("give_phone_to", {"p_name" : player.name})
-  await edit_message(session, text, buttons)
-
-# --- dispatch ---
 
 async def handle_informing(update: Update, game: Game, session: Session):
   query = update.callback_query
   data = query.data if query else None
-  
+
   # ---- STATE TRANSITIONS ----
 
-  if data == "g:start_round" and session.game_substate is None: 
+  if data == "g:start_round" and session.game_substate is None:
     game.sessions_ready = 0
     reset_turn_indices(game)
-    set_all_substates(game, InformSubstate.ROUND_INFO, set_waited = True)
-    
-    await render_round_info_screen(game)
+    set_all_substates(game, InformSubstate.ROUND_INFO, set_waited=True)
+
+    # Render round info and broadcast to all
+    info = game.start_round(reset_mode=True)
+    screen = render_round_info_screen(info["round_number"], info["category"], info["mode"])
+    await broadcast_message(game=game, mode="edit", text=screen.textref, buttons=screen.buttons)
     return False
 
   elif data == "g:start_informing" and session.game_substate == InformSubstate.ROUND_INFO:
@@ -134,13 +47,14 @@ async def handle_informing(update: Update, game: Game, session: Session):
     player.saw_info += 1
     session.game_substate = InformSubstate.SHOW
 
-    await render_show_info_screen(session)
+    screen = render_show_info_screen(player)
+    await edit_message(session, screen.textref, screen.buttons)
     return False
-  
+
   elif data == "g:start_question" and session.game_substate == InformSubstate.END:
     session.turn_index = 0
     game.state = GameState.QUESTION
-    set_all_substates(game, None, set_waited = False)
+    set_all_substates(game, None, set_waited=False)
     return True
 
   # ---- END CONDITION ----
@@ -148,13 +62,49 @@ async def handle_informing(update: Update, game: Game, session: Session):
     session.game_substate = InformSubstate.END
     game.sessions_ready += 1
     session.waited = False
-    
-    await render_end_inform_screen(session, game)
+
+    # Prepare extra informs (players who saw info more than once)
+    extra_informs = [
+      line
+      for p in session.players
+      if p.saw_info > 1
+      for line in [
+        TextRef("seen_info_times", {"p_name": p.name, "p_saw_info": p.saw_info}),
+        TextRef("text", {"text": "\n"})
+      ]
+    ]
+
+    all_ready = (game.sessions_ready >= len(game.session_ids))
+
+    result = render_end_inform_screen(all_ready, extra_informs)
+
+    if isinstance(result, BroadcastScreens):
+      # Owner gets special screen with button; others get text only
+      owner_session = get_session_of_owner(game=game)
+      owner_session.waited = True
+      await edit_message(owner_session, result.special.textref, result.special.buttons)
+      # Broadcast to others
+      await broadcast_message(
+        game=game,
+        mode="edit",
+        text=result.others.textref,
+        exclude_session_ids=[owner_session.id]
+      )
+    else:
+      # Not all ready: everyone sees the same waiting screen
+      await edit_message(session, result.textref, result.buttons)
+
     return False
 
-  # ---- RENDER CURRENT STEP ----
-
+  # ---- RENDER CURRENT STEP (HIDE) ----
   else:
     session.game_substate = InformSubstate.HIDE
-    await render_hide_info_screen(session)
+    player = session.players[session.turn_index]
+    has_seen = (player.saw_info > 0)
+    screen = render_hide_info_screen(
+      player,
+      session.turn_index,
+      has_seen
+    )
+    await edit_message(session, screen.textref, screen.buttons)
     return False

@@ -4,30 +4,11 @@ from flows.states import GameState
 from flows.substates import ModeSettingsSubstate, SetupSubstate
 from models.game import Game
 from models.session import Session
-from flows.utils import *
-from data.users import update_user
-from adapters.telegram.messaging import *
+from data.users import get_user_by_id, update_user
+from adapters.telegram.messaging import edit_message, send_popup_message
 from texts.refs import TextRef, Button
+from views.mode_settings import render_mode_settings_screen
 
-# --- screen renderers ---
-
-async def render_mode_settings_screen(session: Session, game: Game, user: User):
-  text = TextRef("mode_settings_info", {"min_players": user.min_players_for_random})
-  buttons = [
-    [(
-      Button(TextRef("text", {"text" : mode.label + (" ✔" if mode in user.random_modes else " ✘")}),
-      f'e:toggle:{mode.name}')
-    )] for mode in GameMode if mode != GameMode.RANDOM
-  ]
-  if game:
-    buttons.append([Button(TextRef("back_to_mode_selection"), 's:choose_mode')])
-  else:
-    buttons.append([Button(TextRef("back_to_settings"), 'e:done')])
-
-  await edit_message(session, text, buttons)
-
-
-# --- dispatch ---
 
 async def handle_mode_settings(update: Update, game: Game, session: Session):
   query = update.callback_query
@@ -46,7 +27,7 @@ async def handle_mode_settings(update: Update, game: Game, session: Session):
       if mode in user.random_modes:
         if len(user.random_modes) <= 2:
           await query.answer()
-          await send_popup_message(session, TextRef("min_two_modes"), [[Button(TextRef("ok"), "e:done")]], target = session)
+          await send_popup_message(session, TextRef("min_two_modes"), [[Button(TextRef("ok"), "e:done")]], target=session)
           return False
         user.random_modes.remove(mode)
       else:
@@ -58,6 +39,9 @@ async def handle_mode_settings(update: Update, game: Game, session: Session):
       await update_user(user)
       return True
 
-    await render_mode_settings_screen(session, game, user)
+    # Render screen
+    show_back_to_game = (game is not None)
+    screen = render_mode_settings_screen(user, show_back_to_game)
+    await edit_message(session, screen.textref, screen.buttons)
 
   return False

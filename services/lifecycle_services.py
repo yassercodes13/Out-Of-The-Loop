@@ -11,6 +11,8 @@ from models.game import Game
 from models.session import Session
 from models.user import User
 from texts.refs import Button, TextRef
+from views.paused import render_paused_screen
+from views.setup import render_choose_mode_screen
 
 async def create_game(owner: User, owner_session: Session):
   if not owner or not owner_session: return None
@@ -74,7 +76,6 @@ async def terminate_session(session_id: int = None):
 async def remove_players(game: Game, player_ids: list[int]):
   """Single entry point for leave / kick / timeout. Caller decides which
   player_ids to remove; this only handles the consequences."""
-  from flows.paused import render_paused_screen
 
   # --- 1: figure out affected sessions before we mutate anything ---
   affected_session_ids = {
@@ -127,11 +128,23 @@ async def remove_players(game: Game, player_ids: list[int]):
   # --- 5: recalculate and route to the right recovery screen ---
   if len(game.players) < 3:
     game.state = GameState.PAUSED
-    await render_paused_screen(game, owner_session)
+    # Use the view to build the screen
+    screen = render_paused_screen(len(game.players))
+    owner_session = get_session_of_owner(game=game)
+    if owner_session:
+      owner_session.waited = False
+      await broadcast_message(
+        game=game,
+        mode="edit",
+        text=screen.textref,
+        exclude_session_ids=[owner_session.id]
+      )
+      await edit_message(owner_session, screen.textref, screen.buttons)
     return
 
   if game.mode and game.min_players > len(game.players):
-    await _restart_mode_selection(game)
+    owner = get_user_by_id(game.owner_id)
+    await _restart_mode_selection(game, owner)
   else:
     await _confirm_round_continuation(game, owner_session, players_names)
 
@@ -157,9 +170,8 @@ async def _reassign_ownership(game: Game):
     lang = new_owner.lang
   )
 
-async def _restart_mode_selection(game: Game):
+async def _restart_mode_selection(game: Game, user: User):
   """If the mode is no longer valid due to player departures, make the owner choose a new mode."""
-  from flows.setup import render_choose_mode_screen
 
   game.state = GameState.SETUP
   owner_session = get_session_of_owner(game=game)
@@ -168,11 +180,14 @@ async def _restart_mode_selection(game: Game):
   set_all_substates(game, None, set_waited=False, exclude_session_ids=[owner_session.id])
   owner_session.game_substate = SetupSubstate.CHOOSE_MODE
 
-  await render_choose_mode_screen(game, owner_session)
+  # Use the view, then edit the message
+  screen = render_choose_mode_screen(user, category_info="", mode_change=True)
+  await edit_message(owner_session, screen.textref, screen.buttons)
+
   await broadcast_message(
-    game = game, mode = "edit",
+    game = game, mode="edit",
     text = TextRef("player_left_choose_mode"),
-    exclude_session_ids = [owner_session.id]
+    exclude_session_ids=[owner_session.id]
   )
 
 async def _confirm_round_continuation(game: Game, owner_session: Session, players_names: str):

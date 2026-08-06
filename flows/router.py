@@ -2,7 +2,6 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 from data.games import get_game_by_id
-from data.sessions import get_session_by_id
 from flows.mode_settings import handle_mode_settings
 from models.game import Game
 from models.user import User
@@ -28,6 +27,7 @@ from services.lifecycle_services import create_game, remove_players, set_session
 from data.users import get_user_by_id, update_user
 from data.links import get_game_of_user
 from texts.refs import TextRef, Button
+from views.settings import render_settings_menu_screen, render_settings_saved_screen
 
 logger = logging.getLogger(__name__)
 
@@ -144,19 +144,16 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   elif data and data.startswith("e:") or (session.game_substate in AnyCategorySettingsSubstate) or (session.game_substate == ModeSettingsSubstate.MAIN):
 
     if data == "e:done":
-      buttons = [
-        [Button(TextRef("categories"), "e:categories")],
-        [Button(TextRef("modes"), "e:modes")],
-        [Button(TextRef("language"), "e:language")],
-        [Button(TextRef("done"), "e:done")],
-      ]
-
       if session.game_substate is None:
-        await edit_message(session, text=TextRef("settings_saved"))
-        await terminate_session(session_id = session.id)
+        # Standalone settings session
+        screen = render_settings_saved_screen()
+        await edit_message(session, screen.textref, screen.buttons)
+        await terminate_session(session_id=session.id)
       else:
+        # Coming back from sub-settings (categories/modes/language) inside a game
         await update_user(user)
-        await edit_message(session, text=TextRef("choose_edit"), buttons=buttons)
+        screen = render_settings_menu_screen()
+        await edit_message(session, screen.textref, screen.buttons)
         session.game_substate = None
 
     elif session.game_substate in AnyCategorySettingsSubstate or data == "e:categories":
