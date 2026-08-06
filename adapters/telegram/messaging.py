@@ -13,6 +13,7 @@ from texts.refs import TextRef, Button
 from models.user import User
 from models.session import Session
 from models.game import Game
+from views.common import render_join_message_screen
 
 logger = logging.getLogger(__name__)
 
@@ -235,11 +236,10 @@ async def send_info_message(bot: Bot, chat_id: int, text: TextRef | list[TextRef
 async def send_join_message(bot: Bot, chat_id: int, game_id: str, user: User):
   """Sends a join message with a button to join the game."""
 
-  text = TextRef("invitation_message", {"user_username": user.username})
-  text = textify(text, user.lang)
-  
-  reply_markup = [[Button(TextRef("join"), None, f"https://t.me/{BOT_USERNAME}?start={game_id}")]]
-  buttons = build_buttons(reply_markup, chat_id, user.lang)
+  screen = render_join_message_screen(user.username, game_id=game_id)
+
+  text = textify(screen.textref, user.lang)
+  buttons = build_buttons(screen.buttons, chat_id, user.lang)
 
   check_text_length(text, label = f"Popup message (Chat ID: {chat_id})")
 

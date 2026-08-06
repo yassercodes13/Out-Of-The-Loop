@@ -55,11 +55,21 @@ def render_hide_info_screen(player: Player, turn_index: int, has_seen: bool) -> 
   return Screen(textref=text, buttons=buttons)
 
 
-def render_end_inform_screen(all_ready: bool, extra_informs: list[TextRef]) -> Screen | BroadcastScreens:
+def render_end_inform_screen(all_ready: bool, players: list[Player]) -> Screen | BroadcastScreens:
   """
   End of informing: either waiting for others, or owner gets a button to proceed.
   Returns a Screen for non-owner, or BroadcastScreens for owner (separate screens for owner vs others).
   """
+  extra_informs = [
+    line
+    for p in players
+    if p.saw_info > 1
+    for line in [
+      TextRef("seen_info_times", {"p_name": p.name, "p_saw_info": p.saw_info}),
+      TextRef("text", {"text": "\n"})
+    ]
+  ]
+  
   text = [TextRef("all_informed")]
   text.append(TextRef("text", {"text": "\n\n"}))
   text.extend(extra_informs)

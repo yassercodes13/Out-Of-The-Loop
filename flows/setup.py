@@ -9,7 +9,6 @@ from data.default_categories import default_categories
 from models.modes import GameMode
 from adapters.telegram.messaging import edit_message, send_message, send_join_message, send_popup_message, broadcast_message
 from views import setup as setup_view
-from texts.refs import TextRef
 from config import MAX_ROUNDS, MIN_ROUNDS
 
 async def handle_setup(update: Update, game: Game, session: Session):
@@ -193,9 +192,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
         game.random_category_options = user.random_categories
         category = None
 
-      game.category = category
-      title = "Random" if category is None else category.title
-      category_info = TextRef("category_info", {"category_title": title})
+      category_info = "Random" if game.category is None else category.title
 
       screen = setup_view.render_choose_mode_screen(user, category_info)
       await edit_message(session, screen.textref, screen.buttons)
@@ -210,7 +207,7 @@ async def handle_setup(update: Update, game: Game, session: Session):
 
     if data == "s:choose_mode":
       user = await get_user_by_id(update.effective_user.id)
-      category_info = TextRef("category_info", {"category_title": game.category.title if game.category else "Random"})
+      category_info = game.category.title if game.category else "Random"
       screen = setup_view.render_choose_mode_screen(user, category_info)
       await edit_message(session, screen.textref, screen.buttons)
       session.game_substate = SetupSubstate.CHOOSE_MODE

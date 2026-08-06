@@ -1,4 +1,3 @@
-
 from adapters.telegram.messaging import broadcast_message, edit_message, send_info_message
 from data.users import get_user_by_id
 from data.games import delete_game, make_game, get_game_by_id
@@ -10,9 +9,16 @@ from flows.utils import set_all_substates
 from models.game import Game
 from models.session import Session
 from models.user import User
-from texts.refs import Button, TextRef
 from views.paused import render_paused_screen
 from views.setup import render_choose_mode_screen
+from views.common import (
+  render_player_left_game_terminated_screen,
+  render_owner_left_game_screen,
+  render_you_became_owner_screen,
+  render_player_left_choose_mode_screen,
+  render_player_left_waiting_owner_screen,
+  render_player_left_ready_to_continue_screen,
+)
 
 async def create_game(owner: User, owner_session: Session):
   if not owner or not owner_session: return None
@@ -104,11 +110,9 @@ async def remove_players(game: Game, player_ids: list[int]):
   
   #TODO: With better joining logic this could be recoverable
   if (game.state == GameState.SETUP) or (not game.session_ids):
-    text = TextRef("a_player_left_game_terminated")
-    if player_ids != []:
-      text = TextRef("player_left_game_terminated", {"players_names": players_names})
+    screen = render_player_left_game_terminated_screen(players_names if player_ids != [] else None)
 
-    await broadcast_message(game, "send", text)
+    await broadcast_message(game, "send", screen.textref)
     await terminate_game(game)
     return
   
@@ -152,7 +156,8 @@ async def remove_players(game: Game, player_ids: list[int]):
 async def _reassign_ownership(game: Game):
   """"If the owner left, inform the new owner and update the game state accordingly."""
 
-  await broadcast_message(game, "send", TextRef("owner_left_game"))
+  screen = render_owner_left_game_screen()
+  await broadcast_message(game, "send", screen.textref)
 
   if not game.session_ids: return
   new_owner_session = get_session_by_id(game.session_ids[0])
@@ -163,10 +168,11 @@ async def _reassign_ownership(game: Game):
   game.owner_session_id = new_owner_session.id
   game.random_mode_options =  new_owner.random_modes
 
+  screen = render_you_became_owner_screen()
   await send_info_message(
     bot = new_owner_session.bot,
     chat_id = new_owner_session.id,
-    text = TextRef("you_became_owner"),
+    text = screen.textref,
     lang = new_owner.lang
   )
 
@@ -184,23 +190,26 @@ async def _restart_mode_selection(game: Game, user: User):
   screen = render_choose_mode_screen(user, category_info="", mode_change=True)
   await edit_message(owner_session, screen.textref, screen.buttons)
 
+  screen = render_player_left_choose_mode_screen()
   await broadcast_message(
     game = game, mode="edit",
-    text = TextRef("player_left_choose_mode"),
+    text = screen.textref,
     exclude_session_ids=[owner_session.id]
   )
 
 async def _confirm_round_continuation(game: Game, owner_session: Session, players_names: str):
   """If the game is in a state where the mode is still valid, make the owner confirm before continuing."""
-
+ 
   game.state = GameState.INFORM
   owner_session.game_substate = None
-  buttons = [[Button(TextRef("continue"), "g:start_round")]]
-
+ 
   owner_session.waited = True
+  waiting_screen = render_player_left_waiting_owner_screen(players_names)
   await broadcast_message(
     game = game, mode = "edit",
-    text = TextRef("player_left_waiting_owner", {"players_names": players_names}),
+    text = waiting_screen.textref,
     exclude_session_ids = [owner_session.id]
   )
-  await edit_message(owner_session, TextRef("player_left_ready_to_continue", {"players_names": players_names}), buttons)
+ 
+  continue_screen = render_player_left_ready_to_continue_screen(players_names)
+  await edit_message(owner_session, continue_screen.textref, continue_screen.buttons)

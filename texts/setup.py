@@ -71,6 +71,10 @@ SETUP_TEXTS = {
     "en": "Join an out of the loop game by: {user_username}!",
     "ar": "انضم إلى لعبة برا السالفة بواسطة: {user_username}!"
   },
+  "invitation_message_anonymous":{
+    "en" : "Join an out of the loop game!",
+    "ar" : "انضم إلى لعبة برا السالفة!"
+  },
 
   "min_players": {
     "en": "You must have {initial_players_count} players.",

@@ -5,7 +5,7 @@ from services.lifecycle_services import terminate_game, terminate_session, remov
 from flows.states import GameState
 from flows.utils import empty_slots
 from adapters.telegram.messaging import broadcast_message, delete_popup, send_popup_message
-from texts.refs import TextRef, Button
+from views.common import render_still_alive_screen, render_still_running_screen, render_input_names_screen
 
 async def reminder_callback(context: ContextTypes.DEFAULT_TYPE):
   from data.sessions import get_session_by_id
@@ -17,12 +17,9 @@ async def reminder_callback(context: ContextTypes.DEFAULT_TYPE):
   session.reminder = None  # this job is running now, it's not "pending" anymore
 
   if not session.waited: return
-  
-  text = TextRef("still_alive")
-  buttons = [
-    [Button(TextRef("yes"), "i:session_alive")],
-  ]
-  await send_popup_message(session = session, text = text, buttons = buttons, target = session)
+
+  screen = render_still_alive_screen()
+  await send_popup_message(session = session, text = screen.textref, buttons = screen.buttons, target = session)
 
   session.reminder = context.job_queue.run_once(
     callback = alive_check_callback,
@@ -52,7 +49,8 @@ async def alive_check_callback(context: ContextTypes.DEFAULT_TYPE):
     else:
       await terminate_session(session.id)
       slots = empty_slots(game)
-      await broadcast_message(game = game, mode = "edit", text = TextRef("input_names", {"slots": slots}))
+      screen = render_input_names_screen(slots)
+      await broadcast_message(game = game, mode = "edit", text = screen.textref, buttons = screen.buttons)
     return
 
   players_ids = [p.id for p in session.players]
@@ -71,17 +69,14 @@ async def game_reminder_callback(context: ContextTypes.DEFAULT_TYPE):
   if not game: return
 
   game.reminder = None
-  text = TextRef("still_running")
-  buttons = [
-    [Button(TextRef("yes"), "i:game_running")],
-  ]
 
   if game.owner_session_id is None:
     await terminate_game(game)
     return
   owner_session = get_session_of_owner(game)
 
-  await send_popup_message(session = owner_session, text = text, buttons = buttons, target = game)
+  screen = render_still_running_screen()
+  await send_popup_message(session = owner_session, text = screen.textref, buttons = screen.buttons, target = game)
 
   game.reminder = context.job_queue.run_once(
     callback = game_running_check_callback,

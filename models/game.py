@@ -1,10 +1,10 @@
 import random
 from telegram.ext import ContextTypes
 from config import POINTS_SMALL, POINTS_STANDARD, POINTS_LARGE, NUM_WORD_CHOICES, ARROWS, TIME_BEFORE_GAME_CHECK
-from models.modes import GameMode
 from flows.states import GameState
+from models.modes import GameMode
 from models.player import Player
-from data.default_categories import *
+from models.category import Category
 from models.role import Role
 from texts.refs import TextRef
 

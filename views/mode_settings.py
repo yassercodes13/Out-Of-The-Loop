@@ -22,3 +22,7 @@ def render_mode_settings_screen(user: User, show_back_to_game: bool) -> Screen:
     buttons.append([Button(TextRef("back_to_settings"), 'e:done')])
 
   return Screen(textref=text, buttons=buttons)
+
+
+def render_min_two_modes_popup() -> Screen:
+  return Screen(textref=TextRef("min_two_modes"), buttons=[[Button(TextRef("ok"), "e:done")]])

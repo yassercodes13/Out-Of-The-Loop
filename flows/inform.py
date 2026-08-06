@@ -6,7 +6,7 @@ from flows.substates import InformSubstate
 from telegram import Update
 from flows.utils import reset_turn_indices, set_all_substates
 from adapters.telegram.messaging import broadcast_message, edit_message
-from texts.refs import BroadcastScreens, TextRef
+from texts.refs import BroadcastScreens
 from views.inform import (
   render_round_info_screen,
   render_show_info_screen,
@@ -63,20 +63,8 @@ async def handle_informing(update: Update, game: Game, session: Session):
     game.sessions_ready += 1
     session.waited = False
 
-    # Prepare extra informs (players who saw info more than once)
-    extra_informs = [
-      line
-      for p in session.players
-      if p.saw_info > 1
-      for line in [
-        TextRef("seen_info_times", {"p_name": p.name, "p_saw_info": p.saw_info}),
-        TextRef("text", {"text": "\n"})
-      ]
-    ]
-
     all_ready = (game.sessions_ready >= len(game.session_ids))
-
-    result = render_end_inform_screen(all_ready, extra_informs)
+    result = render_end_inform_screen(all_ready, session.players)
 
     if isinstance(result, BroadcastScreens):
       # Owner gets special screen with button; others get text only

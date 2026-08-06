@@ -2,32 +2,30 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 from data.games import get_game_by_id
-from flows.mode_settings import handle_mode_settings
-from models.game import Game
-from models.user import User
-from models.session import Session
+from models import Game, Session, User
+from data.links import get_game_of_user
+from data.users import get_user_by_id, update_user
+from views.common import render_not_active_screen
+from views.settings import render_settings_menu_screen, render_settings_saved_screen
+from adapters.telegram.messaging import delete_popup, edit_message, send_info_message
+from services.lifecycle_services import create_game, remove_players, set_session, terminate_session
 from flows.states import GameState
-from flows.substates import AnyCategorySettingsSubstate, InterruptSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
-from flows.category_settings import handle_category_settings
-from flows.language_settings import handle_language_settings
 from flows.setup import handle_setup
 from flows.vote import handle_voting
 from flows.reveal import handle_reveal
+from flows.paused import handle_paused
 from flows.results import handle_results
 from flows.inform import handle_informing
 from flows.question import handle_questioning
-from flows.vote_words import handle_vote_words
 from flows.guess_word import handle_guess_word
+from flows.vote_words import handle_vote_words
 from flows.guess_teams import handle_guess_teams
-from flows.guess_outsider import handle_guess_outsider
-from flows.paused import handle_paused
+from flows.mode_settings import handle_mode_settings
 from flows.choose_player import handle_choose_player
-from adapters.telegram.messaging import delete_popup, edit_message, send_info_message
-from services.lifecycle_services import create_game, remove_players, set_session, terminate_session
-from data.users import get_user_by_id, update_user
-from data.links import get_game_of_user
-from texts.refs import TextRef, Button
-from views.settings import render_settings_menu_screen, render_settings_saved_screen
+from flows.guess_outsider import handle_guess_outsider
+from flows.category_settings import handle_category_settings
+from flows.language_settings import handle_language_settings
+from flows.substates import AnyCategorySettingsSubstate, InterruptSubstate, ModeSettingsSubstate, LanguageSettingsSubstate
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +50,11 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
   # --- interruptions ---
   if session and session.interrupt_substate == InterruptSubstate.REMOVE_PLAYER:
     if query.message.message_id not in popups:
+      screen = render_not_active_screen()
       await send_info_message(
         bot = context.bot,
         chat_id = update.effective_chat.id,
-        text = TextRef("not_active"),
+        text = screen.textref,
         lang = user.lang
       )
       return
@@ -63,10 +62,11 @@ async def route_game(update: Update, context: ContextTypes.DEFAULT_TYPE, game: G
 
   elif session and session.interrupt_substate is None and data and data.startswith("i:"):
     if query.message.message_id not in popups:
+      screen = render_not_active_screen()
       await send_info_message(
         bot = context.bot,
         chat_id = update.effective_chat.id,
-        text = TextRef("not_active"),
+        text = screen.textref,
         lang = user.lang
       )
       return

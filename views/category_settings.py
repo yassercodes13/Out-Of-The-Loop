@@ -137,3 +137,23 @@ def render_created_screen(title: str, word_count: int) -> Screen:
   text = TextRef("category_created", {"title": title, "word_count": word_count})
   buttons = [[Button(TextRef("back_to_category_settings"), "e:categories")]]
   return Screen(textref=text, buttons=buttons)
+
+
+def render_no_custom_categories_popup() -> Screen:
+  return Screen(textref=TextRef("no_custom_categories"), buttons=[[Button(TextRef("ok"), "i:ok")]])
+
+
+def render_invalid_category_popup() -> Screen:
+  return Screen(textref=TextRef("invalid_category"), buttons=[[Button(TextRef("ok"), "i:ok")]])
+
+
+def render_min_two_categories_popup() -> Screen:
+  return Screen(textref=TextRef("min_two_categories"), buttons=[[Button(TextRef("ok"), "i:ok")]])
+
+
+def render_create_too_few_lines_popup() -> Screen:
+  return Screen(textref=TextRef("create_too_few_lines"), buttons=[[Button(TextRef("ok"), "i:ok")]])
+
+
+def render_create_too_few_words_popup() -> Screen:
+  return Screen(textref=TextRef("create_too_few_words"), buttons=[[Button(TextRef("ok"), "i:ok")]])

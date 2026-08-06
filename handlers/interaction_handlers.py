@@ -4,7 +4,7 @@ from adapters.telegram.messaging import send_info_message
 from handlers.utils import get_session_game, get_user_lang, is_active
 from flows.router import route_game
 from data.users import ensure_user
-from texts.refs import TextRef
+from views.common import render_not_active_screen
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -27,10 +27,11 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if not is_active(update) and not is_starting_game and not is_interrupting:
     await query.answer()
+    screen = render_not_active_screen()
     await send_info_message(
       bot = context.bot,
       chat_id = update.effective_chat.id,
-      text = TextRef("not_active"),
+      text = screen.textref,
       lang = user.lang
     )
     return
@@ -49,10 +50,11 @@ async def handle_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   if not is_active(update):
     if game and session:
+      screen = render_not_active_screen()
       await send_info_message(
         context.bot,
         update.effective_chat.id,
-        TextRef("not_active"),
+        screen.textref,
         lang = user.lang
       )
     return

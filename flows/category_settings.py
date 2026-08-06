@@ -7,7 +7,6 @@ from telegram import Update
 from data.default_categories import default_categories
 from models.category import Category
 from models import Game, Session
-from texts.refs import TextRef, Button
 from config import CATEGORIES_PER_PAGE, MIN_LINES_FOR_CATEGORY, MIN_UNIQUE_WORDS
 from views.category_settings import (
   render_category_settings_main_screen,
@@ -19,6 +18,11 @@ from views.category_settings import (
   render_view_category_screen,
   render_create_screen,
   render_created_screen,
+  render_no_custom_categories_popup,
+  render_invalid_category_popup,
+  render_min_two_categories_popup,
+  render_create_too_few_lines_popup,
+  render_create_too_few_words_popup,
 )
 
 async def handle_category_settings(update: Update, game: Game, session: Session):
@@ -50,7 +54,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
       categories = user.generated_categories
       if not categories:
         await query.answer()
-        await send_popup_message(session, TextRef("no_custom_categories"), [[Button(TextRef("ok"), "i:ok")]], session)
+        screen = render_no_custom_categories_popup()
+        await send_popup_message(session, screen.textref, screen.buttons, session)
         session.game_substate = CategorySettingsSubstate.MAIN
         return False
 
@@ -71,11 +76,12 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         await edit_message(session, screen.textref, screen.buttons)
       else:
         await query.answer()
+        screen = render_invalid_category_popup()
         await send_info_message(
           session.bot,
           session.id,
-          TextRef("invalid_category"),
-          [[Button(TextRef("ok"), "i:ok")]],
+          screen.textref,
+          screen.buttons,
           user.lang
         )
       return False
@@ -97,7 +103,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         await edit_message(session, screen.textref, screen.buttons)
       else:
         await query.answer()
-        await send_popup_message(session, TextRef("invalid_category"), [[Button(TextRef("ok"), "i:ok")]], session)
+        screen = render_invalid_category_popup()
+        await send_popup_message(session, screen.textref, screen.buttons, session)
       return False
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.TOGGLE] and data and (data.startswith("e:toggle") or data.startswith("e:next_cats:")):
@@ -115,7 +122,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         user.random_categories.remove(category)
       else:
         await query.answer()
-        await send_popup_message(session, TextRef("min_two_categories"), [[Button(TextRef("ok"), "i:ok")]], session)
+        screen = render_min_two_categories_popup()
+        await send_popup_message(session, screen.textref, screen.buttons, session)
         return False
 
     elif data.startswith("e:next_cats:"):
@@ -146,7 +154,8 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
         await edit_message(session, screen.textref, screen.buttons)
       else:
         await query.answer()
-        await send_popup_message(session, TextRef("invalid_category"), [[Button(TextRef("ok"), "i:ok")]], session)
+        screen = render_invalid_category_popup()
+        await send_popup_message(session, screen.textref, screen.buttons, session)
       return False
 
   elif session.game_substate in [CategorySettingsSubstate.MAIN, CategorySettingsSubstate.CREATE] and data == "e:create":
@@ -159,14 +168,16 @@ async def handle_category_settings(update: Update, game: Game, session: Session)
     lines = update.message.text.splitlines()
     if len(lines) < MIN_LINES_FOR_CATEGORY:
       await query.answer()
-      await send_popup_message(session, TextRef("create_too_few_lines"), [[Button(TextRef("ok"), "i:ok")]], session)
+      screen = render_create_too_few_lines_popup()
+      await send_popup_message(session, screen.textref, screen.buttons, session)
       return False
 
     title = lines[0].capitalize()
     words = list(dict.fromkeys(w for w in lines[1:] if w.strip()))
     if len(words) < MIN_UNIQUE_WORDS:
       await query.answer()
-      await send_popup_message(session, TextRef("create_too_few_words"), [[Button(TextRef("ok"), "i:ok")]], session)
+      screen = render_create_too_few_words_popup()
+      await send_popup_message(session, screen.textref, screen.buttons, session)
       return False
 
     new_category = Category(title=title, words=words, owner_id=update.effective_user.id)

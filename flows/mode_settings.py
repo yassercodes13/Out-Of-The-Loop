@@ -6,8 +6,7 @@ from models.game import Game
 from models.session import Session
 from data.users import get_user_by_id, update_user
 from adapters.telegram.messaging import edit_message, send_popup_message
-from texts.refs import TextRef, Button
-from views.mode_settings import render_mode_settings_screen
+from views.mode_settings import render_mode_settings_screen, render_min_two_modes_popup
 
 
 async def handle_mode_settings(update: Update, game: Game, session: Session):
@@ -27,7 +26,8 @@ async def handle_mode_settings(update: Update, game: Game, session: Session):
       if mode in user.random_modes:
         if len(user.random_modes) <= 2:
           await query.answer()
-          await send_popup_message(session, TextRef("min_two_modes"), [[Button(TextRef("ok"), "e:done")]], target=session)
+          screen = render_min_two_modes_popup()
+          await send_popup_message(session, screen.textref, screen.buttons, target=session)
           return False
         user.random_modes.remove(mode)
       else:
